@@ -602,7 +602,7 @@ export const useSkillStore = create<SkillStore>()(
           const result: any = await invoke('import_github_skill', {
             request: {
               repoUrl: skill.sourceUrl,
-              installPath: skill.type === 'project' ? skill.localPath?.replace(/\/.claude\/skills\/.+$/, '') : undefined,
+              installPath: skill.type === 'project' ? skill.localPath?.split('/.claude/skills')[0] : undefined,
               skipSecurityCheck: false
             }
           });
