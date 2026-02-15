@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSkillStore } from '../store/useSkillStore';
@@ -55,6 +56,10 @@ const MySkills = () => {
         });
         await scanLocalSkills();
       } else {
+        setDeleteResult({show: true, success: false, message: `${t('deleteError')}: ${result.message}`});
+      }
+    } catch (error: any) {
+      const errMsg = typeof error === 'string' ? error : (error.message || JSON.stringify(error));
       setDeleteResult({show: true, success: false, message: `${t('deleteError')}: ${errMsg}`});
     } finally {
       setIsDeleting(false);
@@ -789,7 +794,7 @@ const MySkills = () => {
                     ) : (
                       <>
                         <Plus size={18} />
-                        {i18n.language === 'zh' ? '确认导入' : 'Confirm Import'}
+                        {t('confirm')}
                       </>
                     )}
                   </button>
