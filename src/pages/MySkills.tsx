@@ -6,7 +6,7 @@ import type { InstalledSkill } from '../types';
 import { invoke } from '@tauri-apps/api/core';
 
 const MySkills = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const {
     installedSkills,
     scanLocalSkills,
@@ -47,7 +47,7 @@ const MySkills = () => {
       });
 
       if (result.success) {
-        setDeleteResult({show: true, success: true, message: `${skill.name} ${i18n.language === 'zh' ? '已成功删除' : 'deleted successfully'}`});
+        setDeleteResult({show: true, success: true, message: `${skill.name} ${t('deleteSuccess')}`});
         setSelectedIds(prev => {
           const next = new Set(prev);
           next.delete(skill.id);
@@ -55,11 +55,7 @@ const MySkills = () => {
         });
         await scanLocalSkills();
       } else {
-        setDeleteResult({show: true, success: false, message: `${i18n.language === 'zh' ? '删除失败' : 'Delete failed'}: ${result.message}`});
-      }
-    } catch (error: any) {
-      const errMsg = typeof error === 'string' ? error : (error.message || JSON.stringify(error));
-      setDeleteResult({show: true, success: false, message: `${i18n.language === 'zh' ? '删除出错' : 'Delete error'}: ${errMsg}`});
+      setDeleteResult({show: true, success: false, message: `${t('deleteError')}: ${errMsg}`});
     } finally {
       setIsDeleting(false);
       setTimeout(() => setDeleteResult({show: false, success: false, message: ''}), 3000);
@@ -95,9 +91,7 @@ const MySkills = () => {
     setDeleteResult({
       show: true,
       success: failCount === 0,
-      message: i18n.language === 'zh'
-        ? `删除完成：${successCount} 成功，${failCount} 失败`
-        : `Delete complete: ${successCount} succeeded, ${failCount} failed`
+      message: t('batchDeleteComplete', { success: successCount, fail: failCount })
     });
     setSelectedIds(new Set());
     await scanLocalSkills();
@@ -113,13 +107,13 @@ const MySkills = () => {
       setDeleteResult({
         show: true,
         success: true,
-        message: i18n.language === 'zh' ? '更新成功' : 'Update successful'
+        message: t('updateSuccess')
       });
     } catch {
       setDeleteResult({
         show: true,
         success: false,
-        message: i18n.language === 'zh' ? '更新失败' : 'Update failed'
+        message: t('updateFailed')
       });
     } finally {
       setUpdatingSkillId(null);
@@ -224,13 +218,13 @@ const MySkills = () => {
   const getSourceLabel = (source?: string) => {
     switch (source) {
       case 'marketplace':
-        return i18n.language === 'zh' ? '市场' : 'Marketplace';
+        return t('marketplace');
       case 'github':
         return 'GitHub';
       case 'local':
-        return i18n.language === 'zh' ? '本地' : 'Local';
+        return t('local');
       default:
-        return i18n.language === 'zh' ? '未知' : 'Unknown';
+        return t('unknown');
     }
   };
 
@@ -286,9 +280,7 @@ const MySkills = () => {
         <div className="toast toast-top toast-end z-50">
           <div className="alert alert-info shadow-lg rounded-2xl">
             <span>
-              {i18n.language === 'zh'
-                ? `更新完成：${updateResult.success} 成功，${updateResult.failed} 失败`
-                : `Update complete: ${updateResult.success} succeeded, ${updateResult.failed} failed`}
+              {t('batchUpdateComplete', { success: updateResult.success, fail: updateResult.failed })}
             </span>
           </div>
         </div>
@@ -303,7 +295,7 @@ const MySkills = () => {
           <div>
             <h2 className="text-2xl font-bold">{t('mySkills')}</h2>
             <p className="text-sm text-base-content/60">
-              {installedSkills.length} {i18n.language === 'zh' ? '个已安装' : 'installed'}
+              {t('installedCount', { count: installedSkills.length })}
             </p>
           </div>
         </div>
@@ -318,7 +310,7 @@ const MySkills = () => {
             ) : (
               <RefreshCw size={16} />
             )}
-            {i18n.language === 'zh' ? '检查更新' : 'Check Updates'}
+            {t('checkUpdates')}
           </button>
           <button
             className="btn btn-primary gap-2 rounded-xl shadow-lg shadow-primary/25"
@@ -338,7 +330,7 @@ const MySkills = () => {
             className={`tab rounded-lg text-sm ${activeTab === 'all' ? 'tab-active' : ''}`}
             onClick={() => setActiveTab('all')}
           >
-            {i18n.language === 'zh' ? '全部' : 'All'} ({installedSkills.length})
+            {t('all')} ({installedSkills.length})
           </a>
           <a
             role="tab"
@@ -360,7 +352,7 @@ const MySkills = () => {
         {selectedIds.size > 0 && (
           <div className="flex items-center gap-3">
             <span className="text-sm text-base-content/60">
-              {selectedIds.size} {i18n.language === 'zh' ? '个已选' : 'selected'}
+              {t('selectedCount', { count: selectedIds.size })}
             </span>
             <button
               className="btn btn-sm btn-primary gap-2 rounded-lg"
@@ -372,7 +364,7 @@ const MySkills = () => {
               ) : (
                 <Download size={14} />
               )}
-              {i18n.language === 'zh' ? '批量更新' : 'Update'}
+              {t('batchUpdate')}
               {updatableSelected.length > 0 && ` (${updatableSelected.length})`}
             </button>
             <button
@@ -385,13 +377,13 @@ const MySkills = () => {
               ) : (
                 <Trash2 size={14} />
               )}
-              {i18n.language === 'zh' ? '批量删除' : 'Delete'}
+              {t('batchDelete')}
             </button>
             <button
               className="btn btn-sm btn-ghost rounded-lg"
               onClick={() => setSelectedIds(new Set())}
             >
-              {i18n.language === 'zh' ? '取消' : 'Cancel'}
+              {t('cancel')}
             </button>
           </div>
         )}
@@ -412,11 +404,11 @@ const MySkills = () => {
                 <Square size={16} />
               )}
             </button>
-            <div className="flex-1 min-w-0">{i18n.language === 'zh' ? '名称' : 'Name'}</div>
-            <div className="w-24 text-center hidden sm:block">{i18n.language === 'zh' ? '来源' : 'Source'}</div>
-            <div className="w-24 text-center hidden md:block">{i18n.language === 'zh' ? '安装时间' : 'Installed'}</div>
-            <div className="w-20 text-center hidden lg:block">{i18n.language === 'zh' ? '状态' : 'Status'}</div>
-            <div className="w-40 text-right">{i18n.language === 'zh' ? '操作' : 'Actions'}</div>
+            <div className="flex-1 min-w-0">{t('name')}</div>
+            <div className="w-24 text-center hidden sm:block">{t('sourceHeader')}</div>
+            <div className="w-24 text-center hidden md:block">{t('installedHeader')}</div>
+            <div className="w-20 text-center hidden lg:block">{t('statusHeader')}</div>
+            <div className="w-40 text-right">{t('actions')}</div>
           </div>
 
           {/* List Items */}
@@ -455,7 +447,7 @@ const MySkills = () => {
                     {skill.hasUpdate && (
                       <span className="badge badge-warning badge-xs gap-0.5">
                         <RefreshCw size={8} />
-                        {i18n.language === 'zh' ? '可更新' : 'Update'}
+                        {t('updateAvailable')}
                       </span>
                     )}
                   </div>
@@ -495,13 +487,13 @@ const MySkills = () => {
                   {skill.status === 'safe' && (
                     <span className="badge badge-success badge-xs gap-0.5">
                       <CheckCircle size={10} />
-                      {i18n.language === 'zh' ? '安全' : 'Safe'}
+                      {t('safe')}
                     </span>
                   )}
                   {skill.status === 'unsafe' && (
                     <span className="badge badge-error badge-xs gap-0.5">
                       <AlertCircle size={10} />
-                      {i18n.language === 'zh' ? '风险' : 'Unsafe'}
+                      {t('risk')}
                     </span>
                   )}
                 </div>
@@ -514,7 +506,7 @@ const MySkills = () => {
                       className="btn btn-ghost btn-xs gap-1 rounded-lg text-primary hover:bg-primary/10"
                       onClick={() => handleSingleUpdate(skill.id)}
                       disabled={updatingSkillId === skill.id}
-                      title={i18n.language === 'zh' ? '更新' : 'Update'}
+                      title={t('update')}
                     >
                       {updatingSkillId === skill.id ? (
                         <span className="loading loading-spinner loading-xs" />
@@ -547,12 +539,10 @@ const MySkills = () => {
         <div className="bg-base-200/50 rounded-2xl border border-base-300 p-12 text-center">
           <FolderOpen size={48} strokeWidth={1} className="mx-auto mb-3 opacity-50 text-base-content/40" />
           <p className="text-base-content/50">
-            {i18n.language === 'zh'
-              ? `暂无 ${activeTab !== 'all' && (activeTab === 'system' ? '系统级' : '项目级')} Skills`
-              : `No ${activeTab !== 'all' ? activeTab : ''} Skills found`}
+            {t('noSkillsFound', { context: activeTab })}
           </p>
           <p className="text-sm mt-2 text-base-content/40">
-            {i18n.language === 'zh' ? '从市场安装或导入 Skills' : 'Install from marketplace or import Skills'}
+            {t('installTip')}
           </p>
         </div>
       )}
@@ -598,7 +588,7 @@ const MySkills = () => {
                   )}
                   {selectedSkill.author && (
                     <span className="flex items-center gap-1">
-                      {i18n.language === 'zh' ? '作者' : 'Author'}: {selectedSkill.author}
+                      {t('author')}: {selectedSkill.author}
                     </span>
                   )}
                 </div>
@@ -619,7 +609,7 @@ const MySkills = () => {
             <div className="flex-1 overflow-auto bg-base-200 p-6">
               <div className="prose prose-sm max-w-none bg-base-100 p-6 rounded-xl shadow-sm">
                 <pre className="whitespace-pre-wrap break-words text-sm leading-relaxed font-mono bg-transparent">
-                  {skillContent || (i18n.language === 'zh' ? '加载中...' : 'Loading...')}
+                  {skillContent || t('loading')}
                 </pre>
               </div>
             </div>
@@ -634,7 +624,7 @@ const MySkills = () => {
                       onClick={() => invoke('open_url', { url: selectedSkill.sourceUrl })}
                     >
                       <ExternalLink size={14} />
-                      {i18n.language === 'zh' ? '查看源码' : 'View Source'}
+                      {t('viewSource')}
                     </button>
                     <button
                       className="btn btn-primary btn-sm gap-2 rounded-xl"
@@ -646,7 +636,7 @@ const MySkills = () => {
                       ) : (
                         <Download size={14} />
                       )}
-                      {i18n.language === 'zh' ? '重新下载' : 'Re-download'}
+                      {t('reDownload')}
                     </button>
                   </>
                 )}
@@ -659,7 +649,7 @@ const MySkills = () => {
                   setSkillContent('');
                 }}
               >
-                {i18n.language === 'zh' ? '关闭' : 'Close'}
+                {t('close')}
               </button>
             </div>
           </div>
@@ -683,7 +673,7 @@ const MySkills = () => {
             {!importType ? (
               <div className="space-y-3">
                 <p className="text-sm text-base-content/60 mb-4">
-                  {i18n.language === 'zh' ? '选择导入方式：' : 'Select import method:'}
+                  {t('selectImportMethod')}
                 </p>
 
                 <div
@@ -697,9 +687,7 @@ const MySkills = () => {
                     <div className="flex-1">
                       <div className="font-semibold text-base mb-1">{t('importFromGitHub')}</div>
                       <div className="text-sm text-base-content/60">
-                        {i18n.language === 'zh'
-                          ? '输入 GitHub 仓库 URL，支持完整仓库或子目录'
-                          : 'Enter GitHub repository URL, supports full repo or subdirectory'}
+                        {t('importGithubTip')}
                       </div>
                     </div>
                   </div>
@@ -716,9 +704,7 @@ const MySkills = () => {
                     <div className="flex-1">
                       <div className="font-semibold text-base mb-1">{t('importFromLocal')}</div>
                       <div className="text-sm text-base-content/60">
-                        {i18n.language === 'zh'
-                          ? '选择本地文件夹路径，必须包含 SKILL.md 文件'
-                          : 'Select local folder path, must contain SKILL.md file'}
+                        {t('importLocalTip')}
                       </div>
                     </div>
                   </div>
@@ -739,7 +725,7 @@ const MySkills = () => {
                   <div className="form-control">
                     <label className="label">
                       <span className="label-text font-semibold">
-                        {i18n.language === 'zh' ? 'GitHub 仓库 URL' : 'GitHub Repository URL'}
+                        {t('githubRepoUrl')}
                       </span>
                     </label>
                     <input
@@ -752,9 +738,7 @@ const MySkills = () => {
                     />
                     <label className="label">
                       <span className="label-text-alt text-base-content/50">
-                        {i18n.language === 'zh'
-                          ? '仓库必须包含 SKILL.md 文件'
-                          : 'Repository must contain SKILL.md file'}
+                        {t('repoMustContainSkill')}
                       </span>
                     </label>
                   </div>
@@ -762,7 +746,7 @@ const MySkills = () => {
                   <div className="form-control">
                     <label className="label">
                       <span className="label-text font-semibold">
-                        {i18n.language === 'zh' ? '本地文件夹路径' : 'Local Folder Path'}
+                        {t('localFolderPath')}
                       </span>
                     </label>
                     <input
@@ -775,9 +759,7 @@ const MySkills = () => {
                     />
                     <label className="label">
                       <span className="label-text-alt text-base-content/50">
-                        {i18n.language === 'zh'
-                          ? '文件夹必须包含 SKILL.md 文件'
-                          : 'Folder must contain SKILL.md file'}
+                        {t('folderMustContainSkill')}
                       </span>
                     </label>
                   </div>
@@ -792,7 +774,7 @@ const MySkills = () => {
                       setImportPath('');
                     }}
                   >
-                    {i18n.language === 'zh' ? '返回' : 'Back'}
+                    {t('back')}
                   </button>
                   <button
                     className="btn btn-primary rounded-xl shadow-lg shadow-primary/25"
