@@ -433,12 +433,20 @@ export const useSkillStore = create<SkillStore>()(
       },
 
       importFromLocal: async (sourcePath: string, installPath?: string) => {
+        const { defaultInstallLocation, projectPaths, selectedProjectIndex } = get();
         const skillName = sourcePath.split(/[\\/]/).pop() || 'unknown-skill';
+
+        let finalInstallPath = installPath;
+        if (!finalInstallPath && defaultInstallLocation === 'project' && projectPaths.length > 0) {
+          finalInstallPath = projectPaths[selectedProjectIndex] || projectPaths[0];
+        }
+
+        console.log(`[Store] Importing from local: ${sourcePath}, installPath: ${finalInstallPath || 'default'}`);
 
         const result: any = await invoke('import_local_skill', {
           request: {
             sourcePath,
-            installPath,
+            installPath: finalInstallPath,
             skillName
           }
         });
@@ -594,7 +602,7 @@ export const useSkillStore = create<SkillStore>()(
           const result: any = await invoke('import_github_skill', {
             request: {
               repoUrl: skill.sourceUrl,
-              installPath: skill.type === 'project' ? skill.localPath?.split('/.claude/skills')[0] : undefined,
+              installPath: skill.type === 'project' ? skill.localPath?.split(/[\\/]SKILL\.md/)[0]?.split(/[\\/][^\\/]+$/)[0] : undefined,
               skipSecurityCheck: false
             }
           });

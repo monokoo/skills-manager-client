@@ -522,9 +522,10 @@ async fn import_github_skill(request: ImportGithubRequest) -> Result<ImportResul
             };
         }
 
-        // 始终安装到 Claude Code 主目录
+        // 确定安装目录
         let install_dir = if let Some(path) = &request.install_path {
-            PathBuf::from(path).join(".claude").join("skills")
+            // 项目级直接使用传入路径
+            PathBuf::from(path)
         } else {
             match get_claude_skills_dir() {
                 Some(dir) => dir,
@@ -734,7 +735,7 @@ fn import_local_skill(request: ImportLocalRequest) -> Result<ImportResult, Strin
     }
 
     let install_dir = if let Some(path) = &request.install_path {
-        PathBuf::from(path).join(".claude").join("skills")
+        PathBuf::from(path)
     } else {
         get_claude_skills_dir().ok_or("Cannot determine skills directory")?
     };

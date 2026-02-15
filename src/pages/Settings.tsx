@@ -412,8 +412,20 @@ const Settings = () => {
                       {t('projectSpecificDir')}
                     </div>
                     <p className="text-xs text-base-content/50 mt-0.5">
-                      .claude/skills • {t('versionControlled')}
+                      {t('projectInstallTip')}
                     </p>
+                    {projectPaths.length > 0 && (
+                      <div className="mt-2 p-2 bg-base-200/50 rounded-lg border border-base-300/50">
+                        <div className="flex items-center gap-2 text-[10px] text-base-content/40 uppercase font-bold tracking-wider">
+                          <Terminal size={10} />
+                          {t('finalInstallPath')}
+                        </div>
+                        <div className="text-xs font-mono text-primary mt-1 break-all">
+                          {projectPaths[selectedProjectIndex] || projectPaths[0]}
+                          <span className="text-base-content/30">/SkillName</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
