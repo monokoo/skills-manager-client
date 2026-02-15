@@ -35,6 +35,7 @@ const MySkills = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [updateResult, setUpdateResult] = useState<{show: boolean, success: number, failed: number} | null>(null);
   const [updatingSkillId, setUpdatingSkillId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleUninstall = async (skill: InstalledSkill) => {
     if (isDeleting) return;
@@ -131,8 +132,16 @@ const MySkills = () => {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredSkills = installedSkills.filter(skill => {
-    if (activeTab === 'all') return true;
-    return skill.type === activeTab;
+    // Tab 过滤
+    const matchesTab = activeTab === 'all' || skill.type === activeTab;
+    
+    // 搜索过滤 (名称或描述)
+    const query = searchQuery.toLowerCase().trim();
+    const matchesSearch = !query || 
+      skill.name.toLowerCase().includes(query) || 
+      skill.description.toLowerCase().includes(query);
+      
+    return matchesTab && matchesSearch;
   });
 
   const handleViewSkill = async (skill: InstalledSkill) => {
@@ -304,9 +313,35 @@ const MySkills = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Search Input */}
+          <div className="relative group overflow-hidden">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-base-content/40 transition-colors group-focus-within:text-primary">
+              {importType === 'local' ? <FolderOpen size={16} /> : <Eye size={16} className="hidden" />}
+              {/* 这里借用一下图标 */}
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              placeholder={t('searchPlaceholder') || "搜索技能名称或描述..."}
+              className="input input-sm pl-10 pr-4 w-64 bg-base-100 hover:bg-base-200 focus:bg-base-100 border-base-200 focus:border-primary/50 rounded-xl transition-all duration-300 placeholder:text-base-content/30 text-sm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button 
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-base-content/30 hover:text-base-content/60"
+                onClick={() => setSearchQuery('')}
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
           <button
-            className="btn btn-ghost btn-sm gap-2 rounded-xl"
+            className="btn btn-ghost btn-sm gap-2 rounded-xl border border-transparent hover:border-base-300"
             onClick={() => checkSkillUpdates()}
             disabled={isCheckingUpdates}
           >
@@ -329,27 +364,45 @@ const MySkills = () => {
 
       {/* Tabs & Batch Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <div role="tablist" className="tabs tabs-boxed bg-base-200 p-1 rounded-xl">
+        <div role="tablist" className="tabs tabs-boxed bg-base-200/50 p-1 rounded-xl border border-base-200">
           <a
             role="tab"
-            className={`tab rounded-lg text-sm ${activeTab === 'all' ? 'tab-active' : ''}`}
+            className={`tab transition-all duration-300 rounded-lg text-sm font-medium ${
+              activeTab === 'all' 
+              ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-200/50' 
+              : 'text-base-content/60 hover:text-base-content'
+            }`}
             onClick={() => setActiveTab('all')}
           >
             {t('all')} ({installedSkills.length})
           </a>
           <a
             role="tab"
-            className={`tab rounded-lg text-sm ${activeTab === 'system' ? 'tab-active' : ''}`}
+            className={`tab transition-all duration-300 rounded-lg text-sm font-medium ${
+              activeTab === 'system' 
+              ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-200/50' 
+              : 'text-base-content/60 hover:text-base-content'
+            }`}
             onClick={() => setActiveTab('system')}
           >
-            {t('systemLevel')} ({installedSkills.filter(s => s.type === 'system').length})
+            <span className="flex items-center gap-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full ${activeTab === 'system' ? 'bg-primary' : 'bg-base-content/20'}`} />
+              {t('systemLevel')} ({installedSkills.filter(s => s.type === 'system').length})
+            </span>
           </a>
           <a
             role="tab"
-            className={`tab rounded-lg text-sm ${activeTab === 'project' ? 'tab-active' : ''}`}
+            className={`tab transition-all duration-300 rounded-lg text-sm font-medium ${
+              activeTab === 'project' 
+              ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-200/50' 
+              : 'text-base-content/60 hover:text-base-content'
+            }`}
             onClick={() => setActiveTab('project')}
           >
-            {t('projectLevel')} ({installedSkills.filter(s => s.type === 'project').length})
+             <span className="flex items-center gap-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full ${activeTab === 'project' ? 'bg-accent' : 'bg-base-content/20'}`} />
+              {t('projectLevel')} ({installedSkills.filter(s => s.type === 'project').length})
+            </span>
           </a>
         </div>
 
@@ -541,14 +594,25 @@ const MySkills = () => {
           </div>
         </div>
       ) : (
-        <div className="bg-base-200/50 rounded-2xl border border-base-300 p-12 text-center">
-          <FolderOpen size={48} strokeWidth={1} className="mx-auto mb-3 opacity-50 text-base-content/40" />
-          <p className="text-base-content/50">
-            {t('noSkillsFound', { context: activeTab })}
+        <div className="bg-base-100 rounded-2xl border border-base-200 p-12 text-center shadow-sm animate-fade-in">
+          <FolderOpen size={48} strokeWidth={1} className="mx-auto mb-3 opacity-30 text-primary" />
+          <p className="text-base-content/70 font-medium">
+            {searchQuery 
+              ? t('noSearchResults', { query: searchQuery }) 
+              : t('noSkillsFound', { context: activeTab })
+            }
           </p>
-          <p className="text-sm mt-2 text-base-content/40">
-            {t('installTip')}
+          <p className="text-xs mt-2 text-base-content/40">
+            {searchQuery ? t('clearSearchTip') : t('installTip')}
           </p>
+          {searchQuery && (
+            <button 
+              className="btn btn-ghost btn-sm mt-4 rounded-xl text-primary"
+              onClick={() => setSearchQuery('')}
+            >
+              {t('clearSearch')}
+            </button>
+          )}
         </div>
       )}
 

@@ -147,6 +147,10 @@ const resources = {
       finalInstallPath: "Final Installation Path Preview",
       enterGithubUrl: "Please enter GitHub URL",
       enterLocalPath: "Please enter local path",
+    searchPlaceholder: "Search skill name or description...",
+    noSearchResults: "No matching skills found for \"{{query}}\"",
+    clearSearch: "Clear Search",
+    clearSearchTip: "Try using different keywords or clear the filter",
 
       // Common
       loading: "Loading...",
@@ -403,6 +407,10 @@ const resources = {
       noSkillsFound_all: "暂无 Skills",
       noSkillsFound_system: "暂无系统级 Skills",
       noSkillsFound_project: "暂无项目级 Skills",
+      searchPlaceholder: "搜索技能名称或描述...",
+      noSearchResults: "未找到匹配 \"{{query}}\" 的 Skills",
+      clearSearch: "清空搜索",
+      clearSearchTip: "尝试换个关键词或者清空筛选条件",
       installTip: "从市场安装或导入 Skills",
       risk: "风险",
 
