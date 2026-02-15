@@ -143,6 +143,8 @@ const resources = {
       // Import/Skill Detail
       importSuccessGitHub: "Successfully imported from GitHub!",
       importSuccessLocal: "Successfully imported from local!",
+      projectInstallTip: "Skills will be installed directly into your specified project path",
+      finalInstallPath: "Final Installation Path Preview",
       enterGithubUrl: "Please enter GitHub URL",
       enterLocalPath: "Please enter local path",
 
@@ -446,6 +448,8 @@ const resources = {
       recommended: "推荐",
       accessibleToAll: "所有项目都能访问",
       projectSpecificDir: "项目专属目录",
+      projectInstallTip: "Skill 将直接安装到您指定的项目路径下 (不再添加 .claude/skills)",
+      finalInstallPath: "最终安装路径预览",
       versionControlled: "可随项目版本控制",
       addPathFirst: "请先在下方添加项目路径",
       noProjectPaths: "暂无项目路径",
