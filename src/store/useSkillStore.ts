@@ -433,20 +433,12 @@ export const useSkillStore = create<SkillStore>()(
       },
 
       importFromLocal: async (sourcePath: string, installPath?: string) => {
-        const { defaultInstallLocation, projectPaths, selectedProjectIndex } = get();
         const skillName = sourcePath.split(/[\\/]/).pop() || 'unknown-skill';
-
-        let finalInstallPath = installPath;
-        if (!finalInstallPath && defaultInstallLocation === 'project' && projectPaths.length > 0) {
-          finalInstallPath = projectPaths[selectedProjectIndex] || projectPaths[0];
-        }
-
-        console.log(`[Store] Importing from local: ${sourcePath}, installPath: ${finalInstallPath || 'default'}`);
 
         const result: any = await invoke('import_local_skill', {
           request: {
             sourcePath,
-            installPath: finalInstallPath,
+            installPath,
             skillName
           }
         });
