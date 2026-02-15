@@ -87,7 +87,7 @@ fn get_agent_configs() -> Vec<AgentConfig> {
             display_name: "Antigravity".to_string(),
             skills_dir: ".agent/skills".to_string(),
             global_skills_dir: ".gemini/antigravity/skills".to_string(),
-            compatibility: "native".to_string(),
+            compatibility: "symlink".to_string(),
             color: "#4285F4".to_string(),
         },
         AgentConfig {
@@ -1030,21 +1030,39 @@ fn create_symlink(agent_id: String) -> Result<SymlinkStatus, String> {
     }
 
     // 如果路径已存在，检查是否是符号链接
-    if link_path.exists() {
-        let metadata = fs::symlink_metadata(&link_path).map_err(|e| e.to_string())?;
-        if metadata.file_type().is_symlink() {
-            // 已是符号链接，删除重建
-            fs::remove_file(&link_path).map_err(|e| e.to_string())?;
-        } else {
-            return Ok(SymlinkStatus {
-                agent_id: agent.id.clone(),
-                agent_name: agent.display_name.clone(),
-                target_path: source_dir.to_string_lossy().to_string(),
-                link_path: link_path.to_string_lossy().to_string(),
-                exists: true,
-                is_valid: false,
-                error: Some("Path exists and is not a symlink. Please remove it manually.".to_string()),
-            });
+    if link_path.exists() || link_path.is_symlink() {
+        match fs::read_link(&link_path) {
+            Ok(target) => {
+                // 检查是否是合法的目标
+                let is_valid = target == source_dir || target.to_string_lossy().contains(".claude/skills");
+                if is_valid {
+                    // 如果已经是合法的，先删除旧的
+                    let _ = fs::remove_file(&link_path);
+                } else {
+                    // 冲突：已链接到其他目录
+                    return Ok(SymlinkStatus {
+                        agent_id: agent.id.clone(),
+                        agent_name: agent.display_name.clone(),
+                        target_path: source_dir.to_string_lossy().to_string(),
+                        link_path: link_path.to_string_lossy().to_string(),
+                        exists: true,
+                        is_valid: false,
+                        error: Some(format!("Conflict: already linked to {}", target.display())),
+                    });
+                }
+            }
+            Err(_) => {
+                // 存在但不是符号链接
+                return Ok(SymlinkStatus {
+                    agent_id: agent.id.clone(),
+                    agent_name: agent.display_name.clone(),
+                    target_path: source_dir.to_string_lossy().to_string(),
+                    link_path: link_path.to_string_lossy().to_string(),
+                    exists: true,
+                    is_valid: false,
+                    error: Some("Path exists and is not a symlink. Please remove it manually.".to_string()),
+                });
+            }
         }
     }
 

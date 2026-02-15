@@ -276,6 +276,12 @@ const Settings = () => {
                       <div className="text-xs text-base-content/40 font-mono truncate">
                         ~/{agent.globalSkillsDir}
                       </div>
+                      {status?.error && (
+                        <div className="mt-1 flex items-center gap-1.5 text-[10px] text-error bg-error/5 p-1 rounded border border-error/20">
+                          <AlertTriangle size={10} />
+                          <span className="truncate" title={status.error}>{status.error}</span>
+                        </div>
+                      )}
                     </div>
                     {isLinked ? (
                       <button
