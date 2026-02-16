@@ -43,3 +43,4 @@ Skill Manager.app
 *.dmg
 docs/PLAN-*.md
 docs/images/*
+src-tauri/~/
