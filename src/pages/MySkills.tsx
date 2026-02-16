@@ -1,8 +1,7 @@
-import i18n from 'i18next';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSkillStore } from '../store/useSkillStore';
-import { Trash2, Eye, FolderOpen, X, Github, HardDrive, Plus, ExternalLink, RefreshCw, AlertCircle, CheckCircle, Package, Calendar, Download, CheckSquare, Square } from 'lucide-react';
+import { Trash2, Eye, FolderOpen, X, Github, HardDrive, Plus, ExternalLink, RefreshCw, AlertCircle, CheckCircle, Package, Calendar, Download, CheckSquare, Square, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import type { InstalledSkill } from '../types';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -48,6 +47,8 @@ const MySkills = () => {
   const [updateResult, setUpdateResult] = useState<{show: boolean, success: number, failed: number} | null>(null);
   const [updatingSkillId, setUpdatingSkillId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'installDate' | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   const handleUninstall = async (skill: InstalledSkill) => {
     if (isDeleting) return;
@@ -143,18 +144,36 @@ const MySkills = () => {
     scanLocalSkills();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const filteredSkills = installedSkills.filter(skill => {
-    // Tab 过滤
-    const matchesTab = activeTab === 'all' || skill.type === activeTab;
-    
-    // 搜索过滤 (名称或描述)
-    const query = searchQuery.toLowerCase().trim();
-    const matchesSearch = !query || 
-      skill.name.toLowerCase().includes(query) || 
-      skill.description.toLowerCase().includes(query);
-      
-    return matchesTab && matchesSearch;
-  });
+  const filteredSkills = installedSkills
+    .filter(skill => {
+      const matchesTab = activeTab === 'all' || skill.type === activeTab;
+      const query = searchQuery.toLowerCase().trim();
+      const matchesSearch = !query ||
+        skill.name.toLowerCase().includes(query) ||
+        skill.description.toLowerCase().includes(query);
+      return matchesTab && matchesSearch;
+    })
+    .sort((a, b) => {
+      if (!sortBy) return 0;
+      const dir = sortDir === 'asc' ? 1 : -1;
+      if (sortBy === 'name') return a.name.localeCompare(b.name) * dir;
+      if (sortBy === 'installDate') return ((a.installDate || 0) - (b.installDate || 0)) * dir;
+      return 0;
+    });
+
+  const toggleSort = (field: 'name' | 'installDate') => {
+    if (sortBy === field) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortDir(field === 'name' ? 'asc' : 'desc');
+    }
+  };
+
+  const SortIcon = ({ field }: { field: 'name' | 'installDate' }) => {
+    if (sortBy !== field) return <ArrowUpDown size={12} className="opacity-40" />;
+    return sortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />;
+  };
 
   const handleViewSkill = async (skill: InstalledSkill) => {
     setSelectedSkill(skill);
@@ -290,12 +309,9 @@ const MySkills = () => {
 
   const formatDate = (timestamp: number) => {
     if (!timestamp) return '-';
-    const date = new Date(timestamp);
-    return date.toLocaleDateString(i18n.language === 'zh' ? 'zh-CN' : 'en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    const d = new Date(timestamp);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   };
 
   const getSourceIcon = (source?: string) => {
@@ -544,9 +560,21 @@ const MySkills = () => {
                 <Square size={16} />
               )}
             </button>
-            <div className="flex-1 min-w-0">{t('name')}</div>
+            <button
+              className="flex-1 min-w-0 flex items-center gap-1 cursor-pointer hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+              onClick={() => toggleSort('name')}
+            >
+              {t('name')}
+              <SortIcon field="name" />
+            </button>
             <div className="w-24 text-center hidden sm:block">{t('sourceHeader')}</div>
-            <div className="w-24 text-center hidden md:block">{t('installedHeader')}</div>
+            <button
+              className="w-40 text-center hidden md:flex items-center justify-center gap-1 cursor-pointer hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+              onClick={() => toggleSort('installDate')}
+            >
+              {t('installedHeader')}
+              <SortIcon field="installDate" />
+            </button>
             <div className="w-20 text-center hidden lg:block">{t('statusHeader')}</div>
             <div className="w-40 text-right">{t('actions')}</div>
           </div>
@@ -604,7 +632,7 @@ const MySkills = () => {
                             bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400
                             rounded border border-gray-200/60 dark:border-white/10
                             hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400
-                            transition-colors truncate max-w-[280px]"
+                            transition-colors truncate max-w-[50vw] sm:max-w-none"
                           title={p}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -640,9 +668,9 @@ const MySkills = () => {
                 </div>
 
                 {/* Install Date */}
-                <div className="w-24 hidden md:flex items-center justify-center gap-1 text-xs text-base-content/50">
+                <div className="w-40 hidden md:flex items-center justify-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                   <Calendar size={12} />
-                  <span>{formatDate(skill.installDate)}</span>
+                  <span className="font-mono">{formatDate(skill.installDate)}</span>
                 </div>
 
                 {/* Status */}
