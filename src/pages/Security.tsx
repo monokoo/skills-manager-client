@@ -4,6 +4,8 @@ import { Shield, ShieldCheck, ShieldAlert, RefreshCw, AlertTriangle, XCircle } f
 import { useSkillStore } from '../store/useSkillStore';
 import { invoke } from '@tauri-apps/api/core';
 import SecurityReportCard from '../components/SecurityReportCard';
+import { BentoGrid } from '../components/ui/BentoGrid';
+import { GlassCard, GlassCardHeader } from '../components/ui/GlassCard';
 
 interface SecurityIssue {
   ruleId: string;
@@ -28,7 +30,7 @@ interface SecurityReport {
 }
 
 const Security = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { installedSkills } = useSkillStore();
   const [scanning, setScanning] = useState(false);
   const [lastScan, setLastScan] = useState<Date | null>(null);
@@ -49,11 +51,10 @@ const Security = () => {
   };
 
   useEffect(() => {
-    // 首次加载时自动扫描
     if (installedSkills.length > 0 && reports.length === 0) {
       handleScan();
     }
-  }, [installedSkills]);
+  }, [installedSkills]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalIssues = reports.reduce((sum, r) => sum + r.issues.length, 0);
   const criticalCount = reports.filter(r => r.level === 'critical' || r.blocked).length;
@@ -61,118 +62,99 @@ const Security = () => {
   const safeCount = reports.filter(r => r.level === 'safe' || r.level === 'low').length;
 
   const getOverallStatus = () => {
-    if (criticalCount > 0) return { text: t('securityStatusAtRisk'), color: 'text-error', icon: XCircle };
-    if (highCount > 0) return { text: t('securityStatusAttention'), color: 'text-warning', icon: AlertTriangle };
-    return { text: t('safe'), color: 'text-success', icon: ShieldCheck };
+    if (criticalCount > 0) return { text: t('securityStatusAtRisk'), color: 'text-red-500', bgColor: 'bg-red-500', icon: XCircle };
+    if (highCount > 0) return { text: t('securityStatusAttention'), color: 'text-amber-500', bgColor: 'bg-amber-500', icon: AlertTriangle };
+    return { text: t('safe'), color: 'text-emerald-500', bgColor: 'bg-emerald-500', icon: ShieldCheck };
   };
 
   const overallStatus = getOverallStatus();
   const StatusIcon = overallStatus.icon;
 
-  const getReportForSkill = (skillPath: string) => {
-    return reports.find(r => skillPath.includes(r.skillId) || r.skillId === skillPath.split(/[\\/]/).pop());
-  };
+  const getReportForSkill = (skillPath: string) =>
+    reports.find(r => skillPath.includes(r.skillId) || r.skillId === skillPath.split(/[\\/]/).pop());
 
   const getLevelBadge = (level: string) => {
-    switch (level) {
-      case 'critical':
-        return <span className="badge badge-error badge-sm">{t('critical')}</span>;
-      case 'high':
-        return <span className="badge badge-error badge-sm">{t('high')}</span>;
-      case 'medium':
-        return <span className="badge badge-warning badge-sm">{t('medium')}</span>;
-      case 'low':
-        return <span className="badge badge-info badge-sm">{t('low')}</span>;
-      case 'safe':
-        return <span className="badge badge-success badge-sm">{t('safe')}</span>;
-      default:
-        return <span className="badge badge-ghost badge-sm">{t('unknown')}</span>;
-    }
+    const styles: Record<string, string> = {
+      critical: 'bg-red-500/10 text-red-600 dark:text-red-400',
+      high: 'bg-red-500/10 text-red-600 dark:text-red-400',
+      medium: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+      low: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+      safe: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    };
+    const labels: Record<string, string> = {
+      critical: t('critical'), high: t('high'), medium: t('medium'),
+      low: t('low'), safe: t('safe'),
+    };
+    return (
+      <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${styles[level] || 'bg-gray-100 text-gray-500'}`}>
+        {labels[level] || t('unknown')}
+      </span>
+    );
   };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">
-            {t('securityCenterTitle')}
-          </h2>
-          <p className="text-base-content/60">
-            {t('securityCenterDesc')}
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('securityCenterTitle')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('securityCenterDesc')}</p>
         </div>
         <button
-          className={`btn btn-primary gap-2`}
           onClick={handleScan}
           disabled={scanning}
+          className={`
+            flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium
+            transition-all duration-150
+            ${scanning
+              ? 'bg-gray-200 dark:bg-white/10 text-gray-400 cursor-not-allowed'
+              : 'bg-blue-500 hover:bg-blue-600 text-white shadow-sm'
+            }
+          `}
         >
           {scanning ? (
-            <span className="loading loading-spinner loading-sm"></span>
+            <RefreshCw size={16} className="animate-spin" />
           ) : (
-            <RefreshCw size={18} />
+            <RefreshCw size={16} />
           )}
-          {scanning
-            ? t('scanning')
-            : t('scanNow')}
+          {scanning ? t('scanning') : t('scanNow')}
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="card bg-base-100 shadow-sm border border-base-200">
-          <div className="card-body items-center text-center py-4">
-            <StatusIcon size={40} className={`${overallStatus.color} mb-1`} />
-            <h3 className="font-semibold text-sm">
-              {t('systemStatus')}
-            </h3>
-            <p className={`${overallStatus.color} font-medium`}>{overallStatus.text}</p>
-            {lastScan && (
-              <p className="text-xs text-base-content/50">
-                {t('lastScan')}: {lastScan.toLocaleTimeString()}
-              </p>
-            )}
-          </div>
-        </div>
+      {/* Stats */}
+      <BentoGrid columns={4} gap={4}>
+        <GlassCard className="text-center">
+          <StatusIcon size={32} className={`${overallStatus.color} mx-auto mb-2`} />
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('systemStatus')}</p>
+          <p className={`text-sm font-semibold ${overallStatus.color} mt-1`}>{overallStatus.text}</p>
+          {lastScan && (
+            <p className="text-[11px] text-gray-400 mt-1">{t('lastScan')}: {lastScan.toLocaleTimeString()}</p>
+          )}
+        </GlassCard>
 
-        <div className="card bg-base-100 shadow-sm border border-base-200">
-          <div className="card-body items-center text-center py-4">
-            <Shield size={40} className="text-info mb-1" />
-            <h3 className="font-semibold text-sm">
-              {i18n.language === 'zh' ? '已扫描' : 'Scanned'}
-            </h3>
-            <p className="text-2xl font-bold">{reports.length}</p>
-            <p className="text-xs text-base-content/50">
-              {i18n.language === 'zh' ? 'Skills' : 'Skills'}
-            </p>
-          </div>
-        </div>
+        <GlassCard className="text-center">
+          <Shield size={32} className="text-blue-500 mx-auto mb-2" />
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('scanned')}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{reports.length}</p>
+        </GlassCard>
 
-        <div className="card bg-base-100 shadow-sm border border-base-200">
-          <div className="card-body items-center text-center py-4">
-            <ShieldCheck size={40} className="text-success mb-1" />
-            <h3 className="font-semibold text-sm">
-              {i18n.language === 'zh' ? '安全' : 'Safe'}
-            </h3>
-            <p className="text-2xl font-bold text-success">{safeCount}</p>
-            <p className="text-xs text-base-content/50">
-              {i18n.language === 'zh' ? '无风险' : 'No risks'}
-            </p>
-          </div>
-        </div>
+        <GlassCard className="text-center">
+          <ShieldCheck size={32} className="text-emerald-500 mx-auto mb-2" />
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('safe')}</p>
+          <p className="text-2xl font-bold text-emerald-500 mt-1">{safeCount}</p>
+        </GlassCard>
 
-        <div className="card bg-base-100 shadow-sm border border-base-200">
-          <div className="card-body items-center text-center py-4">
-            <ShieldAlert size={40} className="text-error mb-1" />
-            <h3 className="font-semibold text-sm">
-              {t('issuesFound')}
-            </h3>
-            <p className="text-2xl font-bold text-error">{totalIssues}</p>
-            <p className="text-xs text-base-content/50">
-              {criticalCount > 0 && <span className="text-error">{criticalCount} {t('critical')}</span>}
-            </p>
-          </div>
-        </div>
-      </div>
+        <GlassCard className="text-center">
+          <ShieldAlert size={32} className="text-red-500 mx-auto mb-2" />
+          <p className="text-xs text-gray-500 dark:text-gray-400">{t('issuesFound')}</p>
+          <p className="text-2xl font-bold text-red-500 mt-1">{totalIssues}</p>
+          {criticalCount > 0 && (
+            <p className="text-[11px] text-red-500 mt-1">{criticalCount} {t('critical')}</p>
+          )}
+        </GlassCard>
+      </BentoGrid>
 
+      {/* Report Detail */}
       {selectedReport && (
         <SecurityReportCard
           report={{
@@ -180,12 +162,8 @@ const Security = () => {
             score: selectedReport.score,
             level: selectedReport.level,
             issues: selectedReport.issues.map(issue => {
-              // 映射 severity: low/medium/high/critical -> info/warning/error/critical
               const severityMap: Record<string, 'critical' | 'error' | 'warning' | 'info'> = {
-                critical: 'critical',
-                high: 'error',
-                medium: 'warning',
-                low: 'info'
+                critical: 'critical', high: 'error', medium: 'warning', low: 'info',
               };
               return {
                 severity: severityMap[issue.severity] || 'info',
@@ -205,84 +183,78 @@ const Security = () => {
         />
       )}
 
-      <div className="card bg-base-100 shadow-sm border border-base-200">
-        <div className="card-body">
-          <h3 className="card-title mb-4">
-            {t('scanResults')}
-          </h3>
-          <div className="overflow-x-auto">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Skill</th>
-                  <th>{t('score')}</th>
-                  <th>{t('riskLevel')}</th>
-                  <th>{t('issues')}</th>
-                  <th>{t('actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {installedSkills.map(skill => {
-                  const report = getReportForSkill(skill.localPath || skill.id);
-                  return (
-                    <tr key={skill.id}>
-                      <td className="font-medium">{skill.name}</td>
-                      <td>
-                        {report ? (
-                          <span className={`font-bold ${
-                            report.score >= 90 ? 'text-success' :
-                            report.score >= 70 ? 'text-warning' :
-                            'text-error'
-                          }`}>
-                            {report.score}
-                          </span>
-                        ) : (
-                          <span className="text-base-content/40">-</span>
-                        )}
-                      </td>
-                      <td>
-                        {report ? (
-                          getLevelBadge(report.level)
-                        ) : (
-                          <span className="badge badge-ghost badge-sm">
-                            {t('notScanned')}
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        {report ? (
-                          <span className={report.issues.length > 0 ? 'text-warning font-medium' : ''}>
-                            {report.issues.length}
-                          </span>
-                        ) : (
-                          <span className="text-base-content/40">-</span>
-                        )}
-                      </td>
-                      <td>
-                        {report && (
-                          <button
-                            className="btn btn-xs btn-ghost"
-                            onClick={() => setSelectedReport(report)}
-                          >
-                            {t('viewReport')}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {installedSkills.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="text-center text-base-content/50 py-8">
-                      {t('noSkillsInstalled')}
+      {/* Results Table */}
+      <GlassCard padding="lg">
+        <GlassCardHeader title={t('scanResults')} />
+        <div className="overflow-x-auto -mx-1">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 dark:border-white/5">
+                <th className="text-left py-3 px-3 text-gray-500 dark:text-gray-400 font-medium">Skill</th>
+                <th className="text-left py-3 px-3 text-gray-500 dark:text-gray-400 font-medium">{t('score')}</th>
+                <th className="text-left py-3 px-3 text-gray-500 dark:text-gray-400 font-medium">{t('riskLevel')}</th>
+                <th className="text-left py-3 px-3 text-gray-500 dark:text-gray-400 font-medium">{t('issues')}</th>
+                <th className="text-left py-3 px-3 text-gray-500 dark:text-gray-400 font-medium">{t('actions')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {installedSkills.map(skill => {
+                const report = getReportForSkill(skill.localPath || skill.id);
+                return (
+                  <tr key={skill.id} className="border-b border-gray-50 dark:border-white/5 last:border-0">
+                    <td className="py-3 px-3 font-medium text-gray-900 dark:text-white">{skill.name}</td>
+                    <td className="py-3 px-3">
+                      {report ? (
+                        <span className={`font-bold ${
+                          report.score >= 90 ? 'text-emerald-500' :
+                          report.score >= 70 ? 'text-amber-500' : 'text-red-500'
+                        }`}>
+                          {report.score}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300 dark:text-gray-600">-</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3">
+                      {report ? getLevelBadge(report.level) : (
+                        <span className="px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 dark:bg-white/5 text-gray-400">
+                          {t('notScanned')}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3">
+                      {report ? (
+                        <span className={report.issues.length > 0 ? 'text-amber-500 font-medium' : 'text-gray-500'}>
+                          {report.issues.length}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300 dark:text-gray-600">-</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3">
+                      {report && (
+                        <button
+                          onClick={() => setSelectedReport(report)}
+                          className="text-xs text-blue-500 hover:text-blue-600 font-medium transition-colors"
+                        >
+                          {t('viewReport')}
+                        </button>
+                      )}
                     </td>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                );
+              })}
+              {installedSkills.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="text-center text-gray-400 py-12">
+                    {t('noSkillsInstalled')}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      </div>
+      </GlassCard>
     </div>
   );
 };

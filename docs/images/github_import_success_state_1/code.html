@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GitHub Import Success State</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style type="text/tailwindcss">
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --bg-light: #ffffff;
+            --bg-gray: #f9fafb;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+        }
+        @layer base {
+            body {
+                @apply font-display text-[var(--text-main)] bg-gray-50;
+            }
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#10b981",
+                        "background-light": "#ffffff",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden relative">
+<div class="absolute inset-0 overflow-hidden pointer-events-none">
+<div class="absolute -top-[20%] -right-[10%] w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[100px]"></div>
+<div class="absolute top-[40%] -left-[10%] w-[300px] h-[300px] bg-emerald-500/5 rounded-full blur-[80px]"></div>
+</div>
+<div class="relative w-full max-w-md bg-white sm:rounded-3xl rounded-t-3xl shadow-2xl overflow-hidden border border-gray-100 flex flex-col max-h-[90vh]">
+<div class="w-full flex justify-center pt-4 pb-1 sm:hidden">
+<div class="w-10 h-1 bg-gray-200 rounded-full"></div>
+</div>
+<div class="p-8 flex flex-col items-center text-center flex-grow overflow-y-auto no-scrollbar">
+<div class="relative mb-8">
+<div class="absolute inset-0 bg-emerald-500/10 rounded-full blur-2xl"></div>
+<div class="relative w-24 h-24 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100">
+<div class="w-16 h-16 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-200">
+<span class="material-icons text-white text-4xl font-bold">check</span>
+</div>
+</div>
+</div>
+<h2 class="text-2xl font-bold text-gray-900 mb-2">Import Successful</h2>
+<p class="text-gray-500 text-sm leading-relaxed mb-8 max-w-[280px]">
+                3 skills have been added to your profile from <br/>
+<span class="bg-gray-100 px-2 py-0.5 rounded text-xs text-emerald-600 font-mono mt-2 inline-block font-medium">monokoo/skills-collection</span>
+</p>
+<div class="w-full bg-[#F8FAFC] rounded-2xl border border-gray-100 p-5 mb-8 text-left">
+<div class="flex items-center justify-between mb-5">
+<span class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Imported Skills</span>
+<span class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2.5 py-1 rounded-full">3 New</span>
+</div>
+<div class="space-y-4">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center flex-shrink-0 shadow-sm">
+<span class="material-icons text-lg text-emerald-500">brush</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-semibold text-gray-900 truncate">Frontend Design</p>
+<p class="text-[11px] text-gray-400 truncate">UI/UX Principles</p>
+</div>
+<div class="w-6 h-6 rounded-full bg-emerald-50 flex items-center justify-center">
+<span class="material-icons text-xs text-emerald-500">add</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center flex-shrink-0 shadow-sm">
+<span class="material-icons text-lg text-emerald-500">api</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-semibold text-gray-900 truncate">Backend API</p>
+<p class="text-[11px] text-gray-400 truncate">RESTful services</p>
+</div>
+<div class="w-6 h-6 rounded-full bg-emerald-50 flex items-center justify-center">
+<span class="material-icons text-xs text-emerald-500">add</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center flex-shrink-0 shadow-sm">
+<span class="material-icons text-lg text-emerald-500">storage</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-semibold text-gray-900 truncate">Database Schema</p>
+<p class="text-[11px] text-gray-400 truncate">SQL &amp; NoSQL</p>
+</div>
+<div class="w-6 h-6 rounded-full bg-emerald-50 flex items-center justify-center">
+<span class="material-icons text-xs text-emerald-500">add</span>
+</div>
+</div>
+</div>
+</div>
+<div class="w-full space-y-3 mt-auto">
+<button class="w-full py-4 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 transition-colors rounded-2xl text-white font-bold shadow-lg shadow-emerald-100 flex items-center justify-center gap-2">
+<span>View My Skills</span>
+<span class="material-icons text-sm">arrow_forward</span>
+</button>
+<button class="w-full py-3 text-gray-400 hover:text-gray-900 transition-colors text-sm font-semibold">
+                    Close
+                </button>
+</div>
+</div>
+</div>
+
+</body></html>

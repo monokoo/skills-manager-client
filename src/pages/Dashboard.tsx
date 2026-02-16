@@ -1,19 +1,45 @@
 import { useEffect } from 'react';
 import { useSkillStore } from '../store/useSkillStore';
-import { ShieldAlert, Zap, Box, HardDrive } from 'lucide-react';
+import { ShieldCheck, Zap, Box, HardDrive, ArrowUpRight } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTranslation } from 'react-i18next';
+import { BentoGrid, BentoItem } from '../components/ui/BentoGrid';
+import { GlassCard, GlassCardHeader } from '../components/ui/GlassCard';
 
-const StatCard = ({ title, value, icon: Icon, color, desc }: any) => (
-  <div className="stats shadow bg-base-100 border border-base-200">
-    <div className="stat">
-      <div className={`stat-figure text-${color}`}>
-        <Icon size={32} />
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ElementType;
+  gradient: string;
+  desc: string;
+}
+
+const StatCard = ({ title, value, icon: Icon, gradient, desc }: StatCardProps) => (
+  <GlassCard className="relative overflow-hidden">
+    <div className={`absolute top-0 right-0 w-20 h-20 rounded-bl-[40px] opacity-10 ${gradient}`} />
+    <div className="flex items-start justify-between">
+      <div>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
+        <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{value}</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{desc}</p>
       </div>
-      <div className="stat-title">{title}</div>
-      <div className="stat-value text-2xl">{value}</div>
-      <div className="stat-desc">{desc}</div>
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${gradient}`}>
+        <Icon size={20} className="text-white" />
+      </div>
     </div>
+  </GlassCard>
+);
+
+const ActivityItem = ({ text, time, active }: { text: string; time: string; active?: boolean }) => (
+  <div className="flex items-start gap-3 py-2.5">
+    <div className="relative mt-1.5">
+      <div className={`w-2 h-2 rounded-full ${active ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="text-sm text-gray-700 dark:text-gray-300 leading-tight">{text}</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{time}</p>
+    </div>
+    {active && <ArrowUpRight size={14} className="text-blue-500 mt-0.5 flex-none" />}
   </div>
 );
 
@@ -21,7 +47,6 @@ const Dashboard = () => {
   const { t } = useTranslation();
   const { scanLocalSkills, installedSkills } = useSkillStore();
 
-  // 根据语言切换图表数据
   const data = [
     { name: t('mon'), usage: 40 },
     { name: t('tue'), usage: 30 },
@@ -36,112 +61,116 @@ const Dashboard = () => {
     scanLocalSkills();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const systemSkillsCount = installedSkills.filter(s => s.type === 'system').length;
-  const projectSkillsCount = installedSkills.filter(s => s.type === 'project').length;
+  const systemCount = installedSkills.filter(s => s.type === 'system').length;
+  const projectCount = installedSkills.filter(s => s.type === 'project').length;
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('dashboard')}</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          {t('allActiveSkills')}
+        </p>
+      </div>
+
+      {/* Stats Row */}
+      <BentoGrid columns={4} gap={4}>
         <StatCard
           title={t('installedSkills')}
           value={installedSkills.length}
           icon={Zap}
-          color="primary"
+          gradient="bg-gradient-to-br from-blue-500 to-cyan-400"
           desc={t('allActiveSkills')}
         />
         <StatCard
           title={t('systemLevel')}
-          value={systemSkillsCount}
+          value={systemCount}
           icon={HardDrive}
-          color="secondary"
+          gradient="bg-gradient-to-br from-emerald-500 to-teal-400"
           desc={t('globallyAvailable')}
         />
         <StatCard
           title={t('projectLevel')}
-          value={projectSkillsCount}
+          value={projectCount}
           icon={Box}
-          color="accent"
+          gradient="bg-gradient-to-br from-amber-500 to-orange-400"
           desc={t('currentProjectOnly')}
         />
         <StatCard
           title={t('securityStatus')}
           value={t('safe')}
-          icon={ShieldAlert}
-          color="success"
+          icon={ShieldCheck}
+          gradient="bg-gradient-to-br from-green-500 to-emerald-400"
           desc={t('noRisksFound')}
         />
-      </div>
+      </BentoGrid>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
-          <h3 className="font-bold text-lg mb-4">{t('skillUsageTrend')}</h3>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data}>
-                <defs>
-                  <linearGradient id="colorUsage" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} />
-                <Tooltip
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                />
-                <Area type="monotone" dataKey="usage" stroke="#3b82f6" fillOpacity={1} fill="url(#colorUsage)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+      {/* Chart + Activity */}
+      <BentoGrid columns={3} gap={6}>
+        <BentoItem colSpan={2}>
+          <GlassCard padding="lg">
+            <GlassCardHeader title={t('skillUsageTrend')} />
+            <div className="h-[280px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={data}>
+                  <defs>
+                    <linearGradient id="colorUsage" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.06)" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: '12px',
+                      border: '1px solid rgba(0,0,0,0.06)',
+                      boxShadow: '0 4px 12px rgb(0 0 0 / 0.08)',
+                      fontSize: '13px',
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="usage"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorUsage)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </GlassCard>
+        </BentoItem>
 
-        <div className="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200">
-          <h3 className="font-bold text-lg mb-4">{t('recentActivity')}</h3>
-          <ul className="steps steps-vertical w-full">
-            <li className="step step-primary">
-                <div className="text-left ml-2">
-                    <p className="font-medium">
-                      {t('installedActivity', { name: 'Git Commander' })}
-                    </p>
-                    <p className="text-xs text-base-content/60">
-                      {t('minutesAgo', { count: 2 })}
-                    </p>
-                </div>
-            </li>
-            <li className="step step-primary">
-                <div className="text-left ml-2">
-                    <p className="font-medium">
-                      {t('updatedActivity', { name: 'Web Search' })}
-                    </p>
-                    <p className="text-xs text-base-content/60">
-                      {t('hoursAgo', { count: 2 })}
-                    </p>
-                </div>
-            </li>
-            <li className="step">
-                <div className="text-left ml-2">
-                    <p className="font-medium">
-                      {t('securityScanActivity')}
-                    </p>
-                    <p className="text-xs text-base-content/60">
-                      {t('yesterday')}
-                    </p>
-                </div>
-            </li>
-            <li className="step">
-                <div className="text-left ml-2">
-                    <p className="font-medium">
-                      {t('systemUpdateActivity')}
-                    </p>
-                    <p className="text-xs text-base-content/60">
-                      {t('daysAgo', { count: 3 })}
-                    </p>
-                </div>
-            </li>
-          </ul>
-        </div>
-      </div>
+        <BentoItem>
+          <GlassCard padding="lg" className="h-full">
+            <GlassCardHeader title={t('recentActivity')} />
+            <div className="space-y-1 divide-y divide-gray-100 dark:divide-white/5">
+              <ActivityItem
+                text={t('installedActivity', { name: 'Git Commander' })}
+                time={t('minutesAgo', { count: 2 })}
+                active
+              />
+              <ActivityItem
+                text={t('updatedActivity', { name: 'Web Search' })}
+                time={t('hoursAgo', { count: 2 })}
+                active
+              />
+              <ActivityItem
+                text={t('securityScanActivity')}
+                time={t('yesterday')}
+              />
+              <ActivityItem
+                text={t('systemUpdateActivity')}
+                time={t('daysAgo', { count: 3 })}
+              />
+            </div>
+          </GlassCard>
+        </BentoItem>
+      </BentoGrid>
     </div>
   );
 };

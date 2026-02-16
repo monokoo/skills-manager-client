@@ -6,6 +6,11 @@ import { Trash2, Eye, FolderOpen, X, Github, HardDrive, Plus, ExternalLink, Refr
 import type { InstalledSkill } from '../types';
 import { invoke } from '@tauri-apps/api/core';
 
+interface CommandResult {
+  success: boolean;
+  message: string;
+}
+
 const MySkills = () => {
   const { t } = useTranslation();
   const {
@@ -17,7 +22,12 @@ const MySkills = () => {
     checkSkillUpdates,
     reinstallSkill,
     isCheckingUpdates,
-    isUpdating
+    isUpdating,
+    analyzeGithubRepo,
+    isAnalyzing,
+    analysisResult,
+    clearAnalysisResult,
+    importSelectedSkills
   } = useSkillStore();
   const [activeTab, setActiveTab] = useState<'all' | 'system' | 'project'>('all');
   const [selectedSkill, setSelectedSkill] = useState<InstalledSkill | null>(null);
@@ -28,6 +38,8 @@ const MySkills = () => {
   const [importUrl, setImportUrl] = useState('');
   const [importPath, setImportPath] = useState('');
   const [isImporting, setIsImporting] = useState(false);
+  const [selectedSkillPaths, setSelectedSkillPaths] = useState<Set<string>>(new Set());
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteResult, setDeleteResult] = useState<{show: boolean, success: boolean, message: string}>({show: false, success: false, message: ''});
 
@@ -42,9 +54,9 @@ const MySkills = () => {
 
     setIsDeleting(true);
     try {
-      const result: any = await invoke('uninstall_skill', {
+      const result = await invoke<CommandResult>('uninstall_skill', {
         request: {
-          skillPath: skill.localPath
+          skillPaths: skill.localPaths || [skill.localPath]
         }
       });
 
@@ -59,8 +71,8 @@ const MySkills = () => {
       } else {
         setDeleteResult({show: true, success: false, message: `${t('deleteError')}: ${result.message}`});
       }
-    } catch (error: any) {
-      const errMsg = typeof error === 'string' ? error : (error.message || JSON.stringify(error));
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : String(error);
       setDeleteResult({show: true, success: false, message: `${t('deleteError')}: ${errMsg}`});
     } finally {
       setIsDeleting(false);
@@ -81,8 +93,8 @@ const MySkills = () => {
       if (!skill) continue;
 
       try {
-        const result: any = await invoke('uninstall_skill', {
-          request: { skillPath: skill.localPath }
+        const result = await invoke<CommandResult>('uninstall_skill', {
+          request: { skillPaths: skill.localPaths || [skill.localPath] }
         });
         if (result.success) {
           successCount++;
@@ -159,43 +171,113 @@ const MySkills = () => {
     }
   };
 
+  const handleAnalyze = async () => {
+    if (!importUrl) return;
+    setAnalysisError(null);
+    try {
+      const result = await analyzeGithubRepo(importUrl);
+      if (result.success) {
+        const allPaths = new Set(result.skills.map((s) => s.path));
+        setSelectedSkillPaths(allPaths);
+      } else {
+        setAnalysisError(result.message);
+      }
+    } catch (err) {
+      setAnalysisError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const toggleSelectSkill = (path: string) => {
+      const newSet = new Set(selectedSkillPaths);
+      if (newSet.has(path)) {
+          newSet.delete(path);
+      } else {
+          newSet.add(path);
+      }
+      setSelectedSkillPaths(newSet);
+  };
+
+  const toggleSelectAllSkills = () => {
+      if (!analysisResult) return;
+      if (selectedSkillPaths.size === analysisResult.skills.length) {
+          setSelectedSkillPaths(new Set());
+      } else {
+          setSelectedSkillPaths(new Set(analysisResult.skills.map((s) => s.path)));
+      }
+  };
+
   const handleImport = async () => {
     if (isImporting) return;
     
     setIsImporting(true);
+    setAnalysisError(null);
+
     try {
+      let success = false;
+      let msg = '';
+
       if (importType === 'github') {
         if (!importUrl.trim()) throw new Error(t('enterGithubUrl'));
-        await importFromGithub(importUrl);
-        setDeleteResult({
-          show: true, 
-          success: true, 
-          message: t('importSuccessGitHub')
-        });
+        
+        if (analysisResult && analysisResult.skills.length > 0) {
+            // Import selected logic
+            const selected = Array.from(selectedSkillPaths);
+            if (selected.length === 0) {
+                setAnalysisError("Please select at least one skill to import.");
+                setIsImporting(false);
+                return;
+            }
+            const result = await importSelectedSkills(analysisResult.tempPath, selected, importUrl);
+            success = result.success;
+            msg = result.message;
+        } else {
+            // Standard import
+            const result = await importFromGithub(importUrl);
+            success = result.success;
+            msg = result.message || t('importSuccessGitHub');
+        }
       } else if (importType === 'local') {
         if (!importPath.trim()) throw new Error(t('enterLocalPath'));
-        await importFromLocal(importPath);
-        setDeleteResult({
-          show: true, 
-          success: true, 
-          message: t('importSuccessLocal')
-        });
+        const result = await importFromLocal(importPath);
+        success = result.success;
+        msg = result.message || t('importSuccessLocal');
+      }
+
+      if (success) {
+          setDeleteResult({
+            show: true, 
+            success: true, 
+            message: msg
+          });
+          setShowImportModal(false);
+          setImportUrl('');
+          setImportPath('');
+          setImportType(null);
+          clearAnalysisResult();
+          setSelectedSkillPaths(new Set());
+      } else {
+          throw new Error(msg || 'Import failed');
       }
       
-      setShowImportModal(false);
-      setImportUrl('');
-      setImportPath('');
-      setImportType(null);
-    } catch (error: any) {
+    } catch (error) {
       console.error('[UI] Import failed:', error);
-      setDeleteResult({
-        show: true, 
-        success: false, 
-        message: `${t('importError')}: ${error.message || error}`
-      });
+      const errMsg = error instanceof Error ? error.message : String(error);
+      // If analysis error, stay in modal
+      if (analysisResult) {
+          setAnalysisError(errMsg);
+      } else {
+          setDeleteResult({
+            show: true, 
+            success: false, 
+            message: `${t('importError')}: ${errMsg}`
+          });
+      }
     } finally {
       setIsImporting(false);
-      setTimeout(() => setDeleteResult((prev: any) => ({ ...prev, show: false })), 3000);
+      // Only clear toast if we set simple deleteResult (logic is a bit mixed here, but effectively keeps toast)
+      if (!analysisResult) {
+          setTimeout(() => setDeleteResult((prev) => ({ ...prev, show: false })), 3000);
+      }
     }
   };
 
@@ -729,8 +811,12 @@ const MySkills = () => {
       {showImportModal && (
         <div className="modal modal-open">
           <div className="modal-box max-w-lg rounded-2xl">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="font-bold text-xl">{t('importSkill')}</h3>
+            <div className="flex justify-between items-center mb-1">
+              <h3 className="font-bold text-xl flex items-center gap-2">
+                {importType === 'github' && <Github size={20} className="text-primary" />}
+                {importType === 'local' && <HardDrive size={20} className="text-primary" />}
+                {!importType ? t('importSkill') : importType === 'github' ? t('importFromGitHub') : t('importFromLocal')}
+              </h3>
               <button
                 className="btn btn-sm btn-circle btn-ghost"
                 onClick={closeImportModal}
@@ -738,9 +824,14 @@ const MySkills = () => {
                 <X size={20} />
               </button>
             </div>
+            {importType && (
+              <p className="text-sm text-base-content/50 mb-6">
+                {importType === 'github' ? t('connectRepoTip') : t('importLocalTip')}
+              </p>
+            )}
 
             {!importType ? (
-              <div className="space-y-3">
+              <div className="space-y-3 mt-5">
                 <p className="text-sm text-base-content/60 mb-4">
                   {t('selectImportMethod')}
                 </p>
@@ -780,41 +871,88 @@ const MySkills = () => {
                 </div>
               </div>
             ) : (
-              <div className="space-y-6">
-                <div className="alert alert-info rounded-xl">
-                  <div className="flex items-center gap-3">
-                    {importType === 'github' ? <Github size={20} /> : <HardDrive size={20} />}
-                    <span className="text-sm">
-                      {importType === 'github' ? t('importFromGitHub') : t('importFromLocal')}
-                    </span>
-                  </div>
-                </div>
-
+              <div className="space-y-5">
                 {importType === 'github' ? (
-                  <div className="form-control">
-                    <label className="label">
-                      <span className="label-text font-semibold">
-                        {t('githubRepoUrl')}
-                      </span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="https://github.com/username/skill-name"
-                      className="input input-bordered w-full rounded-xl"
-                      value={importUrl}
-                      onChange={(e) => setImportUrl(e.target.value)}
-                      autoFocus
-                    />
-                    <label className="label">
-                      <span className="label-text-alt text-base-content/50">
-                        {t('repoMustContainSkill')}
-                      </span>
-                    </label>
-                  </div>
+                  <>
+                    <div className="form-control">
+                      <label className="label pb-1">
+                        <span className="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50">
+                          {t('repositoryUrl')}
+                        </span>
+                      </label>
+                      <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="https://github.com/username/skill-name"
+                            className="input input-bordered flex-1 rounded-xl"
+                            value={importUrl}
+                            onChange={(e) => {
+                                setImportUrl(e.target.value);
+                                if (analysisResult) clearAnalysisResult();
+                            }}
+                            autoFocus
+                          />
+                          <button 
+                              className={`btn btn-primary rounded-xl min-w-[90px] ${isAnalyzing ? 'loading' : ''}`}
+                              onClick={handleAnalyze}
+                              disabled={!importUrl || isAnalyzing || isImporting}
+                          >
+                              {isAnalyzing ? t('analyzing') : t('analyze')}
+                          </button>
+                      </div>
+                      {!analysisResult && (
+                        <label className="label">
+                            <span className="label-text-alt text-base-content/50">
+                            {t('repoMustContainSkill')}
+                            </span>
+                        </label>
+                      )}
+                    </div>
+                    
+                    {/* Analysis Results – Stitch Design */}
+                    {analysisResult && (
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs font-semibold uppercase tracking-wider text-base-content/50">
+                                  {t('discoveredSkills')}
+                                </span>
+                                <span className="badge badge-primary badge-sm font-semibold">
+                                  {t('nFound', { count: analysisResult.skills.length })}
+                                </span>
+                            </div>
+                            <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+                                {analysisResult.skills.map((skill) => (
+                                    <label
+                                      key={skill.path}
+                                      className="flex items-start gap-3 p-3 bg-base-200/50 hover:bg-base-200 rounded-xl cursor-pointer transition-colors border border-base-300/50 hover:border-base-300"
+                                    >
+                                        <input 
+                                          type="checkbox" 
+                                          className="checkbox checkbox-sm checkbox-primary mt-0.5"
+                                          checked={selectedSkillPaths.has(skill.path)}
+                                          onChange={() => toggleSelectSkill(skill.path)}
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                              <span className="font-semibold text-sm">{skill.name}</span>
+                                              <span className="text-xs text-base-content/40 font-mono bg-base-300/50 px-1.5 py-0.5 rounded">
+                                                {skill.path}
+                                              </span>
+                                            </div>
+                                            {skill.description && (
+                                                <div className="text-xs mt-1 text-base-content/50 line-clamp-1">{skill.description}</div>
+                                            )}
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                  </>
                 ) : (
                   <div className="form-control">
-                    <label className="label">
-                      <span className="label-text font-semibold">
+                    <label className="label pb-1">
+                      <span className="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50">
                         {t('localFolderPath')}
                       </span>
                     </label>
@@ -833,34 +971,49 @@ const MySkills = () => {
                     </label>
                   </div>
                 )}
+                
+                {analysisError && (
+                    <div className="alert alert-error rounded-xl text-sm py-2">
+                        <AlertCircle size={16} />
+                        <span>{analysisError}</span>
+                    </div>
+                )}
 
                 <div className="flex justify-end gap-3 pt-2">
                   <button
                     className="btn btn-ghost rounded-xl"
                     onClick={() => {
-                      setImportType(null);
-                      setImportUrl('');
-                      setImportPath('');
+                        if (analysisResult) {
+                             clearAnalysisResult();
+                             setImportUrl('');
+                        } else {
+                            setImportType(null);
+                            setImportUrl('');
+                            setImportPath('');
+                        }
                     }}
                   >
-                    {t('back')}
+                    {t('cancel')}
                   </button>
                   <button
                     className="btn btn-primary rounded-xl shadow-lg shadow-primary/25"
                     onClick={handleImport}
-                    disabled={isImporting || (importType === 'github' ? !importUrl.trim() : !importPath.trim())}
+                    disabled={
+                        isImporting || 
+                        isAnalyzing || 
+                        (importType === 'github' && !importUrl) ||
+                        (importType === 'github' && analysisResult && selectedSkillPaths.size === 0) ||
+                        (importType === 'local' && !importPath)
+                    }
                   >
                     {isImporting ? (
-                      <>
-                        <span className="loading loading-spinner loading-sm"></span>
-                        {t('importing')}
-                      </>
+                         <span className="loading loading-spinner loading-xs" />
                     ) : (
-                      <>
-                        <Plus size={18} />
-                        {t('confirm')}
-                      </>
+                         <Download size={16} />
                     )}
+                    {analysisResult
+                      ? t('importSelected', { count: selectedSkillPaths.size })
+                      : t('import')}
                   </button>
                 </div>
               </div>

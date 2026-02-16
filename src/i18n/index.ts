@@ -87,6 +87,7 @@ const resources = {
       // Import Dialog
       importFromGitHub: "Import from GitHub",
       importFromLocal: "Import from Local",
+      connectRepoTip: "Connect your repository to extract skills.",
       githubRepository: "GitHub Repository",
       githubPlaceholder: "username/repository",
       localPath: "Local Path",
@@ -97,8 +98,15 @@ const resources = {
       importLocalTip: "Select local folder path, must contain SKILL.md file",
       repoMustContainSkill: "Repository must contain SKILL.md file",
       folderMustContainSkill: "Folder must contain SKILL.md file",
-      githubRepoUrl: "GitHub Repository URL",
+      repositoryUrl: "Repository URL",
       localFolderPath: "Local Folder Path",
+      discoveredSkills: "Discovered Skills",
+      nFound: "{{count}} found",
+      analyzing: "Analyzing...",
+      analyze: "Analyze",
+      deselectAll: "Deselect All",
+      selectAllSkills: "Select All",
+      importSelected: "Import Selected ({{count}})",
       back: "Back",
       close: "Close",
       viewSource: "View Source",
@@ -159,6 +167,23 @@ const resources = {
       error: "Error",
       success: "Success",
       warning: "Warning",
+
+      // Install Level Picker
+      systemGlobal: "System Global",
+      systemGlobalDesc: "Available to all projects",
+      projectLevelDesc: "Only for the selected project",
+
+      // Overwrite Dialog
+      overwriteTitle: "Duplicate Skill Detected",
+      overwriteDesc: "\"{{name}}\" already exists at the following path. Overwrite?",
+      overwriteConfirm: "Overwrite",
+
+      // Delete Paths Dialog
+      deleteTitle: "Delete Skill",
+      selectPathsToDelete: "Select installation paths to delete:",
+      dangerZone: "Danger Zone",
+      typeToConfirm: "Type \"{{name}}\" to confirm deletion:",
+      confirmDelete: "Delete {{count}} path(s)",
       mon: "Mon",
       tue: "Tue",
       wed: "Wed",
@@ -323,6 +348,7 @@ const resources = {
       // 导入对话框
       importFromGitHub: "从 GitHub 导入",
       importFromLocal: "从本地导入",
+      connectRepoTip: "连接你的仓库以提取 Skills。",
       githubRepository: "GitHub 仓库",
       githubPlaceholder: "用户名/仓库名",
       localPath: "本地路径",
@@ -333,8 +359,15 @@ const resources = {
       importLocalTip: "选择本地文件夹路径，必须包含 SKILL.md 文件",
       repoMustContainSkill: "仓库必须包含 SKILL.md 文件",
       folderMustContainSkill: "文件夹必须包含 SKILL.md 文件",
-      githubRepoUrl: "GitHub 仓库 URL",
+      repositoryUrl: "仓库 URL",
       localFolderPath: "本地文件夹路径",
+      discoveredSkills: "已发现 Skills",
+      nFound: "发现 {{count}} 个",
+      analyzing: "分析中...",
+      analyze: "分析",
+      deselectAll: "取消全选",
+      selectAllSkills: "全选",
+      importSelected: "导入已选 ({{count}})",
       back: "返回",
       close: "关闭",
       viewSource: "查看源码",
@@ -389,6 +422,23 @@ const resources = {
       error: "错误",
       success: "成功",
       warning: "警告",
+
+      // 安装级别选择器
+      systemGlobal: "系统全局",
+      systemGlobalDesc: "所有项目均可使用",
+      projectLevelDesc: "仅限选定项目使用",
+
+      // 重复检测弹窗
+      overwriteTitle: "检测到同名 Skill",
+      overwriteDesc: "\"{{name}}\" 已存在于以下路径，是否覆盖？",
+      overwriteConfirm: "覆盖安装",
+
+      // 安全删除弹窗
+      deleteTitle: "删除 Skill",
+      selectPathsToDelete: "选择要删除的安装路径：",
+      dangerZone: "危险操作",
+      typeToConfirm: "请输入 \"{{name}}\" 以确认删除：",
+      confirmDelete: "删除 {{count}} 个路径",
       mon: "周一",
       tue: "周二",
       wed: "周三",

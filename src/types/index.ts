@@ -23,6 +23,7 @@ export interface InstalledSkill extends Partial<MarketplaceSkill> {
   descriptionEn?: string; // 英文描述（可选）
   installDate: number;
   localPath: string;
+  localPaths: string[];  // 多路径支持 (F4)
   status: 'safe' | 'unsafe' | 'unknown';
   type: 'system' | 'project';
   version?: string;

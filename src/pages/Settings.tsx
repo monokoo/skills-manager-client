@@ -148,12 +148,12 @@ const Settings = () => {
       <div className="flex-1 space-y-3">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-gradient-to-br from-primary to-violet-500 rounded-xl">
+          <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl">
             <Settings2 size={24} className="text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold">{t('settings')}</h2>
-            <div className="flex items-center gap-3 text-sm text-base-content/60">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('settings')}</h1>
+            <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
               {platform && (
                 <>
                   <span className="flex items-center gap-1">
@@ -161,7 +161,7 @@ const Settings = () => {
                     {platform.os.toUpperCase()} · {platform.arch}
                   </span>
                   {platform.os === 'windows' && (
-                    <span className="text-warning flex items-center gap-1">
+                    <span className="text-amber-500 flex items-center gap-1">
                       <AlertTriangle size={12} />
                       {t('adminRequired')}
                     </span>
@@ -173,7 +173,7 @@ const Settings = () => {
         </div>
 
         {/* Native Compatible Agents */}
-        <div className="collapse collapse-arrow bg-base-200/50 rounded-2xl border border-base-300">
+        <div className="collapse collapse-arrow bg-white dark:bg-white/5 rounded-2xl border border-gray-200/60 dark:border-white/10">
           <input
             type="checkbox"
             checked={expandedSections.native}
@@ -228,7 +228,7 @@ const Settings = () => {
         </div>
 
         {/* Symlink Configuration */}
-        <div className="collapse collapse-arrow bg-base-200/50 rounded-2xl border border-base-300">
+        <div className="collapse collapse-arrow bg-white dark:bg-white/5 rounded-2xl border border-gray-200/60 dark:border-white/10">
           <input
             type="checkbox"
             checked={expandedSections.symlink}
@@ -339,7 +339,7 @@ const Settings = () => {
         </div>
 
         {/* Installation Settings */}
-        <div className="collapse collapse-arrow bg-base-200/50 rounded-2xl border border-base-300">
+        <div className="collapse collapse-arrow bg-white dark:bg-white/5 rounded-2xl border border-gray-200/60 dark:border-white/10">
           <input
             type="checkbox"
             checked={expandedSections.install}
@@ -477,7 +477,7 @@ const Settings = () => {
         </div>
 
         {/* Project Paths */}
-        <div className="collapse collapse-arrow bg-base-200/50 rounded-2xl border border-base-300">
+        <div className="collapse collapse-arrow bg-white dark:bg-white/5 rounded-2xl border border-gray-200/60 dark:border-white/10">
           <input
             type="checkbox"
             checked={expandedSections.paths}
@@ -542,7 +542,7 @@ const Settings = () => {
         </div>
 
         {/* Appearance */}
-        <div className="collapse collapse-arrow bg-base-200/50 rounded-2xl border border-base-300">
+        <div className="collapse collapse-arrow bg-white dark:bg-white/5 rounded-2xl border border-gray-200/60 dark:border-white/10">
           <input
             type="checkbox"
             checked={expandedSections.appearance}
@@ -577,7 +577,7 @@ const Settings = () => {
       <div className="w-72 shrink-0 space-y-4">
         <div className="sticky top-4 space-y-4">
           {/* About Card */}
-          <div className="bg-base-200/50 rounded-2xl p-4 border border-base-300">
+          <div className="bg-white dark:bg-white/5 rounded-2xl p-4 border border-gray-200/60 dark:border-white/10">
             <h3 className="font-bold mb-4 flex items-center gap-2">
               <Package size={16} className="text-primary" />
               {t('about')}
@@ -638,7 +638,7 @@ const Settings = () => {
           </div>
 
           {/* Related Projects Card */}
-          <div className="bg-base-200/50 rounded-2xl p-4 border border-base-300">
+          <div className="bg-white dark:bg-white/5 rounded-2xl p-4 border border-gray-200/60 dark:border-white/10">
             <h3 className="font-bold mb-4">
               {t('relatedProjects')}
             </h3>

@@ -155,7 +155,7 @@ fn get_symlink_agents() -> Vec<AgentConfig> {
         .collect()
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SkillInfo {
     pub name: String,
     pub description: String,
@@ -164,9 +164,9 @@ pub struct SkillInfo {
     #[serde(rename = "descriptionEn")]
     pub description_en: Option<String>,
     pub path: String,
+    pub paths: Vec<String>,
     #[serde(rename = "skillType")]
     pub skill_type: String,
-    // 新增元数据字段
     pub version: Option<String>,
     pub author: Option<String>,
     pub source: Option<String>,  // "marketplace" | "github" | "local"
@@ -234,8 +234,22 @@ pub struct ImportResult {
 
 #[derive(Debug, Deserialize)]
 pub struct UninstallRequest {
-    #[serde(rename = "skillPath")]
-    pub skill_path: String,
+    #[serde(rename = "skillPaths")]
+    pub skill_paths: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CheckExistsRequest {
+    #[serde(rename = "skillName")]
+    pub skill_name: String,
+    #[serde(rename = "installPath")]
+    pub install_path: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CheckExistsResult {
+    pub exists: bool,
+    pub path: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -444,12 +458,14 @@ fn parse_skill_md(path: &PathBuf, skill_type: &str) -> Option<SkillInfo> {
         (None, None)
     };
 
+    let dir_path = skill_dir.to_string_lossy().to_string();
     Some(SkillInfo {
         name: skill_name,
         description: description.clone(),
         description_zh: desc_zh.or_else(|| Some(description.clone())),
         description_en: desc_en.or_else(|| Some(description)),
-        path: skill_dir.to_string_lossy().to_string(),
+        path: dir_path.clone(),
+        paths: vec![dir_path],
         skill_type: skill_type.to_string(),
         version: version_from_md.or_else(|| metadata.as_ref().and_then(|m| m.version.clone())),
         author: author_from_md.or_else(|| metadata.as_ref().and_then(|m| m.author.clone())),
@@ -458,6 +474,23 @@ fn parse_skill_md(path: &PathBuf, skill_type: &str) -> Option<SkillInfo> {
         install_date: metadata.as_ref().map(|m| m.install_date),
         commit_hash: metadata.as_ref().and_then(|m| m.commit_hash.clone()),
     })
+}
+
+fn aggregate_skills(skills: Vec<SkillInfo>) -> Vec<SkillInfo> {
+    use std::collections::HashMap;
+    let mut map: HashMap<String, SkillInfo> = HashMap::new();
+    for skill in skills {
+        map.entry(skill.name.clone())
+            .and_modify(|existing| {
+                for p in &skill.paths {
+                    if !existing.paths.contains(p) {
+                        existing.paths.push(p.clone());
+                    }
+                }
+            })
+            .or_insert(skill);
+    }
+    map.into_values().collect()
 }
 
 #[tauri::command]
@@ -497,6 +530,9 @@ fn scan_skills() -> Result<ScanResult, String> {
             }
         }
     }
+
+    let system_skills = aggregate_skills(system_skills);
+    let project_skills = aggregate_skills(project_skills);
 
     Ok(ScanResult {
         system_skills,
@@ -678,47 +714,67 @@ async fn import_github_skill(request: ImportGithubRequest) -> Result<ImportResul
 }
 
 #[tauri::command]
+fn check_skill_exists(request: CheckExistsRequest) -> Result<CheckExistsResult, String> {
+    let install_dir = PathBuf::from(&request.install_path);
+    let target = install_dir.join(&request.skill_name);
+    let exists = target.exists() && target.join("SKILL.md").exists();
+    Ok(CheckExistsResult {
+        exists,
+        path: target.to_string_lossy().to_string(),
+    })
+}
+
+#[tauri::command]
 fn uninstall_skill(request: UninstallRequest) -> Result<ImportResult, String> {
-    let skill_path = &request.skill_path;
-
-    if skill_path.is_empty() {
+    if request.skill_paths.is_empty() {
         return Ok(ImportResult {
             success: false,
-            message: "Skill path is empty".to_string(),
+            message: "No skill paths provided".to_string(),
             blocked: false,
         });
     }
 
-    let path = PathBuf::from(skill_path);
+    let mut deleted = 0;
+    let mut errors = Vec::new();
 
-    if !path.exists() {
-        return Ok(ImportResult {
-            success: false,
-            message: format!("Skill path does not exist: {}", skill_path),
-            blocked: false,
-        });
+    for skill_path in &request.skill_paths {
+        if skill_path.is_empty() {
+            continue;
+        }
+        let path = PathBuf::from(skill_path);
+        if !path.exists() {
+            errors.push(format!("Path does not exist: {}", skill_path));
+            continue;
+        }
+        let path_str = path.to_string_lossy().to_string();
+        if !path_str.contains("skills") {
+            errors.push(format!("Invalid path (not in skills dir): {}", skill_path));
+            continue;
+        }
+        match fs::remove_dir_all(&path) {
+            Ok(_) => deleted += 1,
+            Err(e) => errors.push(format!("{}: {}", skill_path, e)),
+        }
     }
 
-    let path_str = path.to_string_lossy().to_string();
-    if !path_str.contains(".claude") || !path_str.contains("skills") {
-        return Ok(ImportResult {
-            success: false,
-            message: "Invalid skill path - must be in .claude/skills directory".to_string(),
-            blocked: false,
-        });
-    }
-
-    match fs::remove_dir_all(&path) {
-        Ok(_) => Ok(ImportResult {
+    if deleted > 0 && errors.is_empty() {
+        Ok(ImportResult {
             success: true,
-            message: "Skill uninstalled successfully".to_string(),
+            message: format!("Successfully deleted {} path(s)", deleted),
             blocked: false,
-        }),
-        Err(e) => Ok(ImportResult {
+        })
+    } else if deleted > 0 {
+        Ok(ImportResult {
+            success: true,
+            message: format!("Deleted {} path(s), errors: {}", deleted, errors.join("; ")),
+            blocked: false,
+        })
+    } else {
+        Ok(ImportResult {
             success: false,
-            message: format!("Failed to remove skill: {}", e),
+            message: format!("Failed to delete: {}", errors.join("; ")),
             blocked: false,
-        }),
+        })
     }
 }
 
@@ -1157,6 +1213,201 @@ fn get_platform_info() -> Result<serde_json::Value, String> {
     }))
 }
 
+
+#[derive(Debug, Serialize, Clone)]
+pub struct DiscoveredSkill {
+    pub name: String,
+    pub path: String, // Relative path in repo
+    pub description: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AnalyzeRequest {
+    #[serde(rename = "repoUrl")]
+    pub repo_url: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AnalyzeResult {
+    pub success: bool,
+    pub message: String,
+    pub skills: Vec<DiscoveredSkill>,
+    #[serde(rename = "tempPath")]
+    pub temp_path: String, // Path to temp clone for subsequent import
+}
+
+#[tauri::command(async)]
+async fn analyze_github_repo(request: AnalyzeRequest) -> Result<AnalyzeResult, String> {
+    let repo_url = request.repo_url.clone();
+    
+    let result = tokio::task::spawn_blocking(move || {
+        // Validate URL
+        if !repo_url.starts_with("http") {
+             return AnalyzeResult {
+                success: false,
+                message: "Invalid URL".to_string(),
+                skills: vec![],
+                temp_path: "".to_string(),
+            };
+        }
+
+        let skills_dir = match get_claude_skills_dir() {
+            Some(dir) => dir,
+            None => return AnalyzeResult {
+                success: false,
+                message: "Cannot determine skills directory".to_string(),
+                skills: vec![],
+                temp_path: "".to_string(),
+            },
+        };
+
+        // Create temp directory
+        let timestamp = current_timestamp();
+        let temp_dir_name = format!(".temp_import_{}", timestamp);
+        let temp_dir = skills_dir.join(&temp_dir_name);
+
+        if let Err(e) = fs::create_dir_all(&temp_dir) {
+            return AnalyzeResult {
+                success: false,
+                message: format!("Failed to create temp directory: {}", e),
+                skills: vec![],
+                temp_path: "".to_string(),
+            };
+        }
+
+        // Clone repo
+        let output = Command::new("git")
+            .args(["clone", "--depth", "1", &repo_url, temp_dir.to_str().unwrap()])
+            .output();
+
+        match output {
+            Err(e) => return AnalyzeResult {
+                success: false,
+                message: format!("Git command failed: {}", e),
+                skills: vec![],
+                temp_path: "".to_string(),
+            },
+            Ok(o) if !o.status.success() => return AnalyzeResult {
+                success: false,
+                message: format!("Git clone failed: {}", String::from_utf8_lossy(&o.stderr)),
+                skills: vec![],
+                temp_path: "".to_string(),
+            },
+            _ => {}
+        }
+
+        // Scan for SKILL.md
+        let mut discovered_skills = Vec::new();
+        for entry in WalkDir::new(&temp_dir).max_depth(5) {
+            if let Ok(entry) = entry {
+                let path = entry.path();
+                if path.file_name().map(|n| n == "SKILL.md").unwrap_or(false) {
+                    if let Some(skill_info) = parse_skill_md(&path.to_path_buf(), "temp") {
+                        // Calculate relative path
+                        let relative_path = path.parent().unwrap().strip_prefix(&temp_dir).unwrap_or(path.parent().unwrap());
+                        
+                        discovered_skills.push(DiscoveredSkill {
+                            name: skill_info.name,
+                            path: relative_path.to_string_lossy().to_string(),
+                            description: skill_info.description,
+                        });
+                    }
+                }
+            }
+        }
+
+        AnalyzeResult {
+            success: true,
+            message: "Analysis complete".to_string(),
+            skills: discovered_skills,
+            temp_path: temp_dir.to_string_lossy().to_string(),
+        }
+    }).await.map_err(|e| e.to_string())?;
+
+    Ok(result)
+}
+
+#[derive(Debug, Deserialize)]
+pub struct InstallSelectedRequest {
+    #[serde(rename = "tempPath")]
+    pub temp_path: String,
+    #[serde(rename = "selectedPaths")]
+    pub selected_paths: Vec<String>, // Relative paths of skills to install
+    #[serde(rename = "repoUrl")]
+    pub repo_url: String,
+}
+
+#[tauri::command(async)]
+async fn import_selected_skills(request: InstallSelectedRequest) -> Result<ImportResult, String> {
+    let temp_path = PathBuf::from(request.temp_path);
+    let skills_dir = get_claude_skills_dir().ok_or("Cannot determine skills directory")?;
+    
+    let result = tokio::task::spawn_blocking(move || {
+        if !temp_path.exists() {
+             return ImportResult {
+                success: false,
+                message: "Temporary import directory not found".to_string(),
+                blocked: false,
+            };
+        }
+
+        let mut success_count = 0;
+        let mut fail_count = 0;
+
+        for rel_path in request.selected_paths {
+            let source_dir = temp_path.join(&rel_path);
+            // Use directory name as skill name, or fallback to hash if conflict? 
+            // For now assume folder name is meaningful
+            let skill_name = source_dir.file_name().unwrap_or_default().to_string_lossy().to_string();
+            let target_dir = skills_dir.join(&skill_name);
+
+            // If target exists, maybe we should rename? For now, we overwrite or skip?
+            // Let's remove existing to be safe (similar to reinstall)
+            if target_dir.exists() {
+                let _ = fs::remove_dir_all(&target_dir);
+            }
+
+            // Move directory (rename)
+            // Note: rename might fail if across filesystems, but here we are likely on same FS (user home)
+            // Fallback to copy if rename fails
+            if fs::rename(&source_dir, &target_dir).is_err() {
+                 if let Err(_) = copy_dir_all(&source_dir, &target_dir) {
+                     fail_count += 1;
+                     continue;
+                 }
+            }
+
+             // Add metadata
+            let metadata = SkillMetadata {
+                source: "github".to_string(),
+                source_url: Some(request.repo_url.clone()),
+                install_date: current_timestamp(),
+                commit_hash: None, // We lost git history in temp move, or we could have captured it in analyze
+                version: None,
+                author: None,
+                description: None,
+                description_zh: None,
+                description_en: None,
+            };
+            let _ = save_skill_metadata(&target_dir, &metadata);
+            
+            success_count += 1;
+        }
+
+        // Cleanup temp dir
+        let _ = fs::remove_dir_all(&temp_path);
+
+        ImportResult {
+            success: true,
+            message: format!("Imported {} skills", success_count),
+            blocked: false,
+        }
+    }).await.map_err(|e| e.to_string())?;
+
+    Ok(result)
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1165,6 +1416,7 @@ pub fn run() {
             scan_skills,
             import_github_skill,
             uninstall_skill,
+            check_skill_exists,
             import_local_skill,
             get_project_paths,
             save_project_paths,
@@ -1178,8 +1430,12 @@ pub fn run() {
             create_symlink,
             create_all_symlinks,
             remove_symlink,
-            get_platform_info
+            get_platform_info,
+            analyze_github_repo,
+            import_selected_skills
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+

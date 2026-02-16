@@ -6,17 +6,12 @@ import { useTranslation } from 'react-i18next';
 function Navbar() {
     const location = useLocation();
     const { t, i18n } = useTranslation();
-    const [theme, setTheme] = useState<'light' | 'dark'>('light');
-
-    // Initialize theme from system preference or local storage
-    useEffect(() => {
+    const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
-        if (savedTheme) {
-            setTheme(savedTheme);
-        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            setTheme('dark');
-        }
-    }, []);
+        if (savedTheme) return savedTheme;
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
+        return 'light';
+    });
 
     // Apply theme to document
     useEffect(() => {

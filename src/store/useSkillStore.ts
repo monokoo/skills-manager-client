@@ -40,7 +40,24 @@ interface InstallResult {
   securityReport?: SecurityReport;
 }
 
+
+export interface DiscoveredSkill {
+  name: string;
+  path: string; // Relative path
+  description: string;
+}
+
+export interface AnalyzeResult {
+  success: boolean;
+  message: string;
+  skills: DiscoveredSkill[];
+  tempPath: string;
+}
+
+
+
 interface SkillStore {
+  // ... existing state
   installedSkills: InstalledSkill[];
   marketplaceSkills: MarketplaceSkill[];
   isLoading: boolean;
@@ -67,6 +84,10 @@ interface SkillStore {
   // 平台信息
   platform: { os: string; arch: string; family: string } | null;
 
+  // Analysis State
+  isAnalyzing: boolean;
+  analysisResult: AnalyzeResult | null;
+
   // Actions
   fetchMarketplaceSkills: () => Promise<void>;
   scanLocalSkills: () => Promise<void>;
@@ -75,6 +96,12 @@ interface SkillStore {
   updateSkill: (id: string, skill: Partial<InstalledSkill>) => void;
   importFromGithub: (url: string, installPath?: string) => Promise<InstallResult>;
   importFromLocal: (sourcePath: string, installPath?: string) => Promise<InstallResult>;
+  
+  // New Analysis Actions
+  analyzeGithubRepo: (url: string) => Promise<AnalyzeResult>;
+  clearAnalysisResult: () => void;
+  importSelectedSkills: (tempPath: string, selectedPaths: string[], repoUrl: string) => Promise<InstallResult>;
+
   fetchProjectPaths: () => Promise<void>;
   saveProjectPaths: (paths: string[]) => Promise<void>;
   setDefaultInstallLocation: (location: 'system' | 'project') => void;
@@ -119,6 +146,10 @@ export const useSkillStore = create<SkillStore>()(
       // 更新检查状态
       isCheckingUpdates: false,
       isUpdating: false,
+      
+      // Analysis State
+      isAnalyzing: false,
+      analysisResult: null,
 
       // 代理状态
       agents: [],
@@ -141,6 +172,10 @@ export const useSkillStore = create<SkillStore>()(
 
       clearLastSecurityReport: () => {
         set({ lastSecurityReport: null });
+      },
+      
+      clearAnalysisResult: () => {
+        set({ analysisResult: null });
       },
 
       // 软链接 Actions
@@ -232,19 +267,19 @@ export const useSkillStore = create<SkillStore>()(
           const result: any = await invoke('scan_skills');
 
           const mapSkill = (s: any) => ({
-            id: s.path,
+            id: s.name,
             name: s.name,
             description: s.description || '',
             descriptionZh: s.descriptionZh,
             descriptionEn: s.descriptionEn,
             localPath: s.path,
+            localPaths: s.paths || [s.path],
             status: 'safe' as const,
             type: s.skillType,
             installDate: s.installDate || Date.now(),
-            version: s.version,  // 不默认，保持原始值
+            version: s.version,
             author: s.author,
             stars: 0,
-            // 来源元数据
             source: s.source || 'local',
             sourceUrl: s.sourceUrl,
             commitHash: s.commitHash,
@@ -342,7 +377,7 @@ export const useSkillStore = create<SkillStore>()(
 
           const result: any = await invoke('uninstall_skill', {
             request: {
-              skillPath: skill.localPath
+              skillPaths: skill.localPaths || [skill.localPath]
             }
           });
 
@@ -430,6 +465,43 @@ export const useSkillStore = create<SkillStore>()(
           console.error('[Store] importFromGithub error:', error);
           throw error;
         }
+      },
+      
+      analyzeGithubRepo: async (url: string) => {
+          set({ isAnalyzing: true, analysisResult: null });
+          try {
+              const result: AnalyzeResult = await invoke('analyze_github_repo', {
+                  request: { repoUrl: url }
+              });
+              set({ isAnalyzing: false, analysisResult: result });
+              return result;
+          } catch (error: any) {
+              set({ isAnalyzing: false });
+              throw new Error(error.message || 'Analysis failed');
+          }
+      },
+      
+      importSelectedSkills: async (tempPath: string, selectedPaths: string[], repoUrl: string) => {
+          try {
+              const result: any = await invoke('import_selected_skills', {
+                  request: { tempPath, selectedPaths, repoUrl }
+              });
+              
+              if (!result.success) {
+                  throw new Error(result.message);
+              }
+              
+              await get().scanLocalSkills();
+              // Skip security scan for now as it handles multiple skills
+              
+              return {
+                  success: true,
+                  message: result.message,
+                  blocked: false
+              };
+          } catch (error: any) {
+              throw new Error(error.message || 'Import failed');
+          }
       },
 
       importFromLocal: async (sourcePath: string, installPath?: string) => {
@@ -595,7 +667,7 @@ export const useSkillStore = create<SkillStore>()(
         try {
           // 先删除
           await invoke('uninstall_skill', {
-            request: { skillPath: skill.localPath }
+            request: { skillPaths: [skill.localPath] }
           });
 
           // 重新安装
@@ -685,3 +757,4 @@ export const useSkillStore = create<SkillStore>()(
     }
   )
 );
+

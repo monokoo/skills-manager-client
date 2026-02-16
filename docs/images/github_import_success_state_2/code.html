@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GitHub Import Error State</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#dc2626", // Clear, readable red for error state
+                        "primary-hover": "#b91c1c",
+                        "background-light": "#f2f2f7", // iOS System Background
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1.25rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body {
+            min-height: 100dvh;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light font-display text-gray-900 min-h-screen flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden relative">
+<div class="absolute inset-0 overflow-hidden pointer-events-none">
+<div class="absolute -top-[20%] -right-[10%] w-[500px] h-[500px] bg-red-500/5 rounded-full blur-[100px]"></div>
+<div class="absolute top-[40%] -left-[10%] w-[300px] h-[300px] bg-red-500/5 rounded-full blur-[80px]"></div>
+</div>
+<div class="relative w-full max-w-md bg-white sm:rounded-2xl rounded-t-2xl shadow-xl overflow-hidden border border-gray-200 flex flex-col max-h-[95vh] h-full sm:h-auto">
+<div class="w-full flex justify-center pt-4 pb-2 sm:hidden flex-shrink-0">
+<div class="w-10 h-1 bg-gray-300 rounded-full"></div>
+</div>
+<div class="p-6 sm:p-8 flex flex-col items-center flex-grow overflow-y-auto no-scrollbar">
+<div class="w-full text-center mb-6">
+<div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-red-50 text-primary mb-4">
+<span class="material-icons text-3xl">error_outline</span>
+</div>
+<h2 class="text-2xl font-bold text-gray-900">Import Failed</h2>
+<p class="text-gray-500 text-sm mt-1">
+                We couldn't fetch data from the provided URL.
+            </p>
+</div>
+<div class="w-full space-y-2 mb-6">
+<label class="block text-sm font-semibold text-gray-700" for="repo-url">
+                GitHub Repository URL
+            </label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-icons text-gray-400 text-lg">link</span>
+</div>
+<input class="block w-full pl-10 pr-10 py-3.5 bg-white border-2 border-primary text-gray-900 rounded-xl focus:ring-red-500 focus:border-red-500 sm:text-sm placeholder-gray-400" id="repo-url" placeholder="https://github.com/username/repo" type="text" value="https://github.com/monokoo/invalid-repo"/>
+<div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+<span class="material-icons text-primary text-lg">error</span>
+</div>
+</div>
+<p class="text-primary text-sm font-medium flex items-center gap-1.5 px-0.5">
+<span class="material-icons text-xs">info</span>
+                Invalid repository URL. Please check the link and try again.
+            </p>
+</div>
+<button class="w-full py-3.5 mb-8 bg-gray-900 hover:bg-black active:scale-[0.98] transition-all rounded-xl text-white font-semibold shadow-md flex items-center justify-center gap-2">
+<span>Analyze</span>
+<span class="material-icons text-sm">refresh</span>
+</button>
+<div class="w-full bg-gray-50 rounded-xl border border-dashed border-gray-200 p-8 text-center flex flex-col items-center justify-center min-h-[160px] mb-4">
+<div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+<span class="material-icons text-gray-400 text-xl">content_paste_off</span>
+</div>
+<h3 class="text-sm font-semibold text-gray-900">No skills found</h3>
+<p class="text-xs text-gray-500 mt-1 max-w-[200px]">
+                Enter a valid repository URL above to discover skills.
+            </p>
+</div>
+</div>
+<div class="p-6 pt-4 border-t border-gray-100 bg-gray-50/50 mt-auto">
+<div class="flex flex-col gap-3">
+<button class="w-full py-3.5 bg-gray-200 text-gray-400 font-bold rounded-xl cursor-not-allowed flex items-center justify-center gap-2" disabled="">
+<span>Import Selected (0)</span>
+</button>
+<button class="w-full py-2 text-gray-500 hover:text-gray-900 transition-colors text-sm font-semibold">
+                Cancel
+            </button>
+</div>
+</div>
+</div>
+
+</body></html>

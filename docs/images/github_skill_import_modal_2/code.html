@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GitHub Skill Import Modal - Light Mode</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#3b82f6",
+                        "background-light": "#f8fafc",
+                        "surface": "#ffffff",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: max(884px, 100dvh);
+        }
+        .ios-shadow {
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light font-display text-slate-900 min-h-screen flex items-center justify-center p-4">
+<div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-0"></div>
+<div class="relative z-10 w-full max-w-[380px] bg-white rounded-3xl ios-shadow overflow-hidden border border-slate-200">
+<div class="px-6 pt-8 pb-4">
+<div class="flex items-center justify-between mb-2">
+<h1 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary font-bold">account_tree</span>
+                    Import from GitHub
+                </h1>
+<button class="text-slate-400 hover:text-slate-600 transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<p class="text-sm text-slate-500">
+                Connect your repository to extract and verify skills for your portfolio.
+            </p>
+</div>
+<div class="px-6 py-4">
+<label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2 ml-1">Repository URL</label>
+<div class="flex flex-col gap-3">
+<div class="relative group">
+<input class="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white outline-none transition-all text-slate-800 placeholder:text-slate-400" placeholder="https://github.com/user/repo" type="text" value="https://github.com/monokoo/skills-collection"/>
+</div>
+<button class="w-full bg-primary hover:bg-blue-600 text-white py-3 rounded-xl text-sm font-semibold transition-all shadow-md shadow-primary/20 active:scale-[0.98]">
+                    Analyze Repository
+                </button>
+</div>
+</div>
+<div class="px-6 py-4">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 ml-1">Discovered Skills</h3>
+<span class="text-[10px] bg-primary/10 text-primary px-2.5 py-1 rounded-full font-bold">3 DETECTED</span>
+</div>
+<div class="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+<label class="group flex items-start gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer">
+<div class="mt-0.5">
+<div class="w-5 h-5 rounded-md border-2 border-primary bg-primary flex items-center justify-center transition-colors">
+<span class="material-icons text-white text-[14px] font-bold">check</span>
+</div>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<span class="text-sm font-bold text-slate-800">Frontend Design</span>
+<span class="text-[10px] font-mono bg-slate-200 px-1.5 py-0.5 rounded text-slate-600">/packages/frontend</span>
+</div>
+<p class="text-xs text-slate-500 mt-1">UI/UX design systems and components</p>
+</div>
+</label>
+<label class="group flex items-start gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer">
+<div class="mt-0.5">
+<div class="w-5 h-5 rounded-md border-2 border-primary bg-primary flex items-center justify-center transition-colors">
+<span class="material-icons text-white text-[14px] font-bold">check</span>
+</div>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<span class="text-sm font-bold text-slate-800">Backend API</span>
+<span class="text-[10px] font-mono bg-slate-200 px-1.5 py-0.5 rounded text-slate-600">/packages/backend</span>
+</div>
+<p class="text-xs text-slate-500 mt-1">RESTful API and authentication</p>
+</div>
+</label>
+<label class="group flex items-start gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl hover:bg-white hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer">
+<div class="mt-0.5">
+<div class="w-5 h-5 rounded-md border-2 border-primary bg-primary flex items-center justify-center transition-colors">
+<span class="material-icons text-white text-[14px] font-bold">check</span>
+</div>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<span class="text-sm font-bold text-slate-800">Database Schema</span>
+<span class="text-[10px] font-mono bg-slate-200 px-1.5 py-0.5 rounded text-slate-600">/packages/db</span>
+</div>
+<p class="text-xs text-slate-500 mt-1">SQL optimization and migrations</p>
+</div>
+</label>
+</div>
+</div>
+<div class="p-6 flex flex-col gap-3 bg-slate-50/80 border-t border-slate-100">
+<button class="w-full bg-primary hover:bg-blue-600 text-white py-3.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-primary/20 active:scale-[0.98]">
+                Import Selected Skills (3)
+            </button>
+<button class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 py-3.5 rounded-xl text-sm font-bold transition-all active:scale-[0.98]">
+                Cancel
+            </button>
+</div>
+<div class="flex justify-center pb-3 pt-1 bg-slate-50/80">
+<div class="w-32 h-1.5 bg-slate-300 rounded-full"></div>
+</div>
+</div>
+
+</body></html>

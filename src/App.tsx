@@ -1,17 +1,23 @@
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
-import Layout from './components/layout/Layout';
+import AppShell from './components/layout/AppShell';
+import Dashboard from './pages/Dashboard';
 import MySkills from './pages/MySkills';
 import Marketplace from './pages/Marketplace';
 import Settings from './pages/Settings';
+import Security from './pages/Security';
 
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <Layout />,
+    element: <AppShell />,
     children: [
       {
         index: true,
-        element: <Navigate to="/my-skills" replace />,
+        element: <Navigate to="/dashboard" replace />,
+      },
+      {
+        path: 'dashboard',
+        element: <Dashboard />,
       },
       {
         path: 'my-skills',
@@ -25,11 +31,15 @@ const router = createBrowserRouter([
         path: 'settings',
         element: <Settings />,
       },
+      {
+        path: 'security',
+        element: <Security />,
+      },
     ],
   },
   {
     path: '*',
-    element: <Navigate to="/my-skills" replace />,
+    element: <Navigate to="/dashboard" replace />,
   }
 ]);
 
