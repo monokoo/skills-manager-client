@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useSkillStore } from '../store/useSkillStore';
 import { Trash2, Eye, FolderOpen, X, Github, HardDrive, Plus, ExternalLink, RefreshCw, AlertCircle, CheckCircle, Package, Calendar, Download, CheckSquare, Square, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
@@ -451,7 +452,10 @@ const MySkills = () => {
             {t('checkUpdates')}
           </button>
           <button
-            className="btn btn-primary gap-2 rounded-xl shadow-lg shadow-primary/25"
+            className="btn btn-primary gap-2 rounded-xl shadow-lg shadow-primary/25 border-none
+              bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500
+              dark:from-blue-500 dark:to-indigo-500 dark:hover:from-blue-400 dark:hover:to-indigo-400
+              transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
             onClick={() => setShowImportModal(true)}
           >
             <Plus size={18} />
@@ -859,219 +863,274 @@ const MySkills = () => {
       )}
 
       {/* Import Modal */}
-      {showImportModal && (
-        <div className="modal modal-open">
-          <div className="modal-box max-w-lg rounded-2xl">
-            <div className="flex justify-between items-center mb-1">
-              <h3 className="font-bold text-xl flex items-center gap-2">
-                {importType === 'github' && <Github size={20} className="text-primary" />}
-                {importType === 'local' && <HardDrive size={20} className="text-primary" />}
-                {!importType ? t('importSkill') : importType === 'github' ? t('importFromGitHub') : t('importFromLocal')}
-              </h3>
-              <button
-                className="btn btn-sm btn-circle btn-ghost"
-                onClick={closeImportModal}
-              >
-                <X size={20} />
-              </button>
-            </div>
-            {importType && (
-              <p className="text-sm text-base-content/50 mb-6">
-                {importType === 'github' ? t('connectRepoTip') : t('importLocalTip')}
-              </p>
-            )}
-
-            {!importType ? (
-              <div className="space-y-3 mt-5">
-                <p className="text-sm text-base-content/60 mb-4">
-                  {t('selectImportMethod')}
-                </p>
-
-                <div
-                  className="card bg-base-200 hover:bg-base-300 cursor-pointer transition-colors p-4 rounded-xl"
-                  onClick={() => setImportType('github')}
+      <AnimatePresence>
+        {showImportModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={closeImportModal}
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-lg bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl 
+                rounded-3xl border border-white/20 dark:border-white/10 shadow-2xl overflow-hidden"
+            >
+              {/* Modal Header */}
+              <div className="flex justify-between items-center p-6 pb-2">
+                <h3 className="font-bold text-xl flex items-center gap-2">
+                  {importType === 'github' && <Github size={20} className="text-blue-500" />}
+                  {importType === 'local' && <HardDrive size={20} className="text-blue-500" />}
+                  {!importType ? t('importSkill') : importType === 'github' ? t('importFromGitHub') : t('importFromLocal')}
+                </h3>
+                <button
+                  className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                  onClick={closeImportModal}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-base-100 flex items-center justify-center shrink-0">
-                      <Github size={24} />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-base mb-1">{t('importFromGitHub')}</div>
-                      <div className="text-sm text-base-content/60">
-                        {t('importGithubTip')}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  className="card bg-base-200 hover:bg-base-300 cursor-pointer transition-colors p-4 rounded-xl"
-                  onClick={() => setImportType('local')}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-base-100 flex items-center justify-center shrink-0">
-                      <HardDrive size={24} />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-base mb-1">{t('importFromLocal')}</div>
-                      <div className="text-sm text-base-content/60">
-                        {t('importLocalTip')}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  <X size={20} />
+                </button>
               </div>
-            ) : (
-              <div className="space-y-5">
-                {importType === 'github' ? (
-                  <>
-                    <div className="form-control">
-                      <label className="label pb-1">
-                        <span className="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50">
-                          {t('repositoryUrl')}
-                        </span>
-                      </label>
-                      <div className="flex gap-2">
-                          <input
-                            type="text"
-                            placeholder="https://github.com/username/skill-name"
-                            className="input input-bordered flex-1 rounded-xl"
-                            value={importUrl}
-                            onChange={(e) => {
+
+              <div className="p-6 pt-0">
+                {importType && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">
+                    {importType === 'github' ? t('connectRepoTip') : t('importLocalTip')}
+                  </p>
+                )}
+
+                {/* Selection View */}
+                {!importType ? (
+                  <div className="space-y-4 mt-2">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 font-medium">
+                      {t('selectImportMethod')}
+                    </p>
+
+                    <motion.div
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
+                      className="group flex items-start gap-4 p-4 bg-white/50 dark:bg-white/5 
+                        hover:bg-white/80 dark:hover:bg-white/10 cursor-pointer transition-all 
+                        rounded-2xl border border-gray-100 dark:border-white/5"
+                      onClick={() => setImportType('github')}
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-500/20 
+                        flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0
+                        group-hover:scale-110 transition-transform">
+                        <Github size={24} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-base mb-0.5">{t('importFromGitHub')}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {t('importGithubTip')}
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
+                      className="group flex items-start gap-4 p-4 bg-white/50 dark:bg-white/5 
+                        hover:bg-white/80 dark:hover:bg-white/10 cursor-pointer transition-all 
+                        rounded-2xl border border-gray-100 dark:border-white/5"
+                      onClick={() => setImportType('local')}
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-500/20 
+                        flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0
+                        group-hover:scale-110 transition-transform">
+                        <HardDrive size={24} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-base mb-0.5">{t('importFromLocal')}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {t('importLocalTip')}
+                        </div>
+                      </div>
+                    </motion.div>
+                  </div>
+                ) : (
+                  /* Input View */
+                  <div className="space-y-6">
+                    {importType === 'github' ? (
+                      <div className="space-y-4">
+                        <div className="form-control">
+                          <label className="label py-1">
+                            <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400 dark:text-gray-500">
+                              {t('repositoryUrl')}
+                            </span>
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="https://github.com/username/skill-name"
+                              className="input flex-1 h-11 bg-white dark:bg-white/5 border-gray-200/60 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/20 transition-all font-mono text-sm"
+                              value={importUrl}
+                              onChange={(e) => {
                                 setImportUrl(e.target.value);
                                 if (analysisResult) clearAnalysisResult();
-                            }}
-                            autoFocus
-                          />
-                          <button 
-                              className={`btn btn-primary rounded-xl min-w-[90px] ${isAnalyzing ? 'loading' : ''}`}
+                              }}
+                              autoFocus
+                            />
+                            <button
+                              className={`btn btn-primary h-11 min-w-[100px] rounded-xl border-none shadow-md shadow-blue-500/20 ${isAnalyzing ? 'loading' : ''}`}
                               onClick={handleAnalyze}
                               disabled={!importUrl || isAnalyzing || isImporting}
-                          >
+                            >
                               {isAnalyzing ? t('analyzing') : t('analyze')}
-                          </button>
-                      </div>
-                      {!analysisResult && (
-                        <label className="label">
-                            <span className="label-text-alt text-base-content/50">
-                            {t('repoMustContainSkill')}
-                            </span>
-                        </label>
-                      )}
-                    </div>
-                    
-                    {/* Analysis Results – Stitch Design */}
-                    {analysisResult && (
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-center">
-                                <span className="text-xs font-semibold uppercase tracking-wider text-base-content/50">
-                                  {t('discoveredSkills')}
-                                </span>
-                                <span className="badge badge-primary badge-sm font-semibold">
+                            </button>
+                          </div>
+                          {!analysisResult && (
+                            <div className="mt-3 px-1">
+                              <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                                <AlertCircle size={10} />
+                                {t('repoMustContainSkill')}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Analysis Results */}
+                        <AnimatePresence>
+                          {analysisResult && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              className="space-y-3 overflow-hidden"
+                            >
+                              <div className="flex justify-between items-center px-1">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      toggleSelectAllSkills();
+                                    }}
+                                    className="p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors"
+                                    title={selectedSkillPaths.size === analysisResult.skills.length ? t('deselectAll') : t('selectAll')}
+                                  >
+                                    {selectedSkillPaths.size === analysisResult.skills.length ? (
+                                      <CheckSquare size={16} className="text-blue-500" />
+                                    ) : (
+                                      <Square size={16} className="text-gray-400" />
+                                    )}
+                                  </button>
+                                  <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400">
+                                    {t('discoveredSkills')}
+                                  </span>
+                                </div>
+                                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-500 rounded-full text-[10px] font-bold">
                                   {t('nFound', { count: analysisResult.skills.length })}
                                 </span>
-                            </div>
-                            <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+                              </div>
+                              <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                                 {analysisResult.skills.map((skill) => (
-                                    <label
-                                      key={skill.path}
-                                      className="flex items-start gap-3 p-3 bg-base-200/50 hover:bg-base-200 rounded-xl cursor-pointer transition-colors border border-base-300/50 hover:border-base-300"
-                                    >
-                                        <input 
-                                          type="checkbox" 
-                                          className="checkbox checkbox-sm checkbox-primary mt-0.5"
-                                          checked={selectedSkillPaths.has(skill.path)}
-                                          onChange={() => toggleSelectSkill(skill.path)}
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                              <span className="font-semibold text-sm">{skill.name}</span>
-                                              <span className="text-xs text-base-content/40 font-mono bg-base-300/50 px-1.5 py-0.5 rounded">
-                                                {skill.path}
-                                              </span>
-                                            </div>
-                                            {skill.description && (
-                                                <div className="text-xs mt-1 text-base-content/50 line-clamp-1">{skill.description}</div>
-                                            )}
-                                        </div>
-                                    </label>
+                                  <label
+                                    key={skill.path}
+                                    className={`flex items-start gap-3 p-3 rounded-2xl cursor-pointer transition-all border
+                                      ${selectedSkillPaths.has(skill.path)
+                                        ? 'bg-blue-50/50 dark:bg-blue-500/10 border-blue-500/20'
+                                        : 'bg-gray-50/50 dark:bg-white/5 border-transparent hover:border-gray-200 dark:hover:border-white/10'}`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      className="checkbox checkbox-sm checkbox-primary mt-0.5 rounded-md"
+                                      checked={selectedSkillPaths.has(skill.path)}
+                                      onChange={() => toggleSelectSkill(skill.path)}
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-semibold text-sm">{skill.name}</span>
+                                        <span className="text-[9px] text-gray-400 font-mono bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">
+                                          {skill.path}
+                                        </span>
+                                      </div>
+                                      {skill.description && (
+                                        <div className="text-[10px] mt-1 text-gray-500 dark:text-gray-400 line-clamp-1">{skill.description}</div>
+                                      )}
+                                    </div>
+                                  </label>
                                 ))}
-                            </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="form-control">
+                          <label className="label py-1">
+                            <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400 dark:text-gray-500">
+                              {t('localFolderPath')}
+                            </span>
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="/Users/user/Downloads/my-skill"
+                            className="input h-11 bg-white dark:bg-white/5 border-gray-200/60 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/20 transition-all font-mono text-sm"
+                            value={importPath}
+                            onChange={(e) => setImportPath(e.target.value)}
+                            autoFocus
+                          />
+                          <div className="mt-3 px-1">
+                            <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                              <AlertCircle size={10} />
+                              {t('folderMustContainSkill')}
+                            </span>
+                          </div>
                         </div>
+                      </div>
                     )}
-                  </>
-                ) : (
-                  <div className="form-control">
-                    <label className="label pb-1">
-                      <span className="label-text text-xs font-semibold uppercase tracking-wider text-base-content/50">
-                        {t('localFolderPath')}
-                      </span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="/Users/user/Downloads/my-skill"
-                      className="input input-bordered w-full rounded-xl"
-                      value={importPath}
-                      onChange={(e) => setImportPath(e.target.value)}
-                      autoFocus
-                    />
-                    <label className="label">
-                      <span className="label-text-alt text-base-content/50">
-                        {t('folderMustContainSkill')}
-                      </span>
-                    </label>
-                  </div>
-                )}
-                
-                {analysisError && (
-                    <div className="alert alert-error rounded-xl text-sm py-2">
-                        <AlertCircle size={16} />
-                        <span>{analysisError}</span>
-                    </div>
-                )}
 
-                <div className="flex justify-end gap-3 pt-2">
-                  <button
-                    className="btn btn-ghost rounded-xl"
-                    onClick={() => {
-                        if (analysisResult) {
-                             clearAnalysisResult();
-                             setImportUrl('');
-                        } else {
+                    {analysisError && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl flex items-center gap-3 text-sm"
+                      >
+                        <AlertCircle size={16} className="shrink-0" />
+                        <span>{analysisError}</span>
+                      </motion.div>
+                    )}
+
+                    {/* Footer Actions */}
+                    <div className="flex justify-end gap-3 pt-2">
+                      <button
+                        className="px-4 py-2 rounded-xl text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                        onClick={() => {
+                          if (analysisResult) {
+                            clearAnalysisResult();
+                            setImportUrl('');
+                          } else {
                             setImportType(null);
                             setImportUrl('');
                             setImportPath('');
+                          }
+                        }}
+                      >
+                        {t('cancel')}
+                      </button>
+                      <button
+                        className="btn btn-primary px-6 rounded-xl shadow-lg shadow-primary/25 border-none h-10"
+                        onClick={handleImport}
+                        disabled={
+                          isImporting ||
+                          (importType === 'github' && (!analysisResult || selectedSkillPaths.size === 0)) ||
+                          (importType === 'local' && !importPath)
                         }
-                    }}
-                  >
-                    {t('cancel')}
-                  </button>
-                  <button
-                    className="btn btn-primary rounded-xl shadow-lg shadow-primary/25"
-                    onClick={handleImport}
-                    disabled={
-                        isImporting || 
-                        isAnalyzing || 
-                        (importType === 'github' && !importUrl) ||
-                        (importType === 'github' && analysisResult && selectedSkillPaths.size === 0) ||
-                        (importType === 'local' && !importPath)
-                    }
-                  >
-                    {isImporting ? (
-                         <span className="loading loading-spinner loading-xs" />
-                    ) : (
-                         <Download size={16} />
-                    )}
-                    {analysisResult
-                      ? t('importSelected', { count: selectedSkillPaths.size })
-                      : t('import')}
-                  </button>
-                </div>
+                      >
+                        {isImporting ? <span className="loading loading-spinner loading-xs" /> : t('import')}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 };
