@@ -572,7 +572,7 @@ const MySkills = () => {
                   )}
                 </button>
 
-                {/* Name & Description */}
+                {/* Name, Description & Paths */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold truncate">{skill.name}</span>
@@ -591,9 +591,32 @@ const MySkills = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-base-content/50 truncate" title={skill.description}>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate" title={skill.description}>
                     {skill.description}
                   </p>
+                  {/* Installation Paths */}
+                  {skill.localPaths && skill.localPaths.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {skill.localPaths.map((p, i) => (
+                        <button
+                          key={i}
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-mono
+                            bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400
+                            rounded border border-gray-200/60 dark:border-white/10
+                            hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400
+                            transition-colors truncate max-w-[280px]"
+                          title={p}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            invoke('open_url', { url: `file://${p}` }).catch(() => {});
+                          }}
+                        >
+                          <FolderOpen size={9} />
+                          {p.replace(/^\/Users\/[^/]+/, '~')}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Source - Clickable */}
