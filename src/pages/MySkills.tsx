@@ -385,12 +385,12 @@ const MySkills = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-primary to-violet-500 rounded-xl">
+          <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl">
             <Package size={24} className="text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold">{t('mySkills')}</h2>
-            <p className="text-sm text-base-content/60">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('mySkills')}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {t('installedCount', { count: installedSkills.length })}
             </p>
           </div>
@@ -446,13 +446,13 @@ const MySkills = () => {
 
       {/* Tabs & Batch Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <div role="tablist" className="tabs tabs-boxed bg-base-200/50 p-1 rounded-xl border border-base-200">
+        <div role="tablist" className="tabs tabs-boxed bg-gray-100 dark:bg-white/5 p-1 rounded-xl border border-gray-200/60 dark:border-white/10">
           <a
             role="tab"
             className={`tab transition-all duration-300 rounded-lg text-sm font-medium ${
               activeTab === 'all' 
-              ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-200/50' 
-              : 'text-base-content/60 hover:text-base-content'
+              ? 'bg-white dark:bg-white/10 text-blue-500 shadow-sm ring-1 ring-gray-200/50 dark:ring-white/10' 
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
             onClick={() => setActiveTab('all')}
           >
@@ -462,8 +462,8 @@ const MySkills = () => {
             role="tab"
             className={`tab transition-all duration-300 rounded-lg text-sm font-medium ${
               activeTab === 'system' 
-              ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-200/50' 
-              : 'text-base-content/60 hover:text-base-content'
+              ? 'bg-white dark:bg-white/10 text-blue-500 shadow-sm ring-1 ring-gray-200/50 dark:ring-white/10' 
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
             onClick={() => setActiveTab('system')}
           >
@@ -476,8 +476,8 @@ const MySkills = () => {
             role="tab"
             className={`tab transition-all duration-300 rounded-lg text-sm font-medium ${
               activeTab === 'project' 
-              ? 'bg-base-100 text-primary shadow-sm ring-1 ring-base-200/50' 
-              : 'text-base-content/60 hover:text-base-content'
+              ? 'bg-white dark:bg-white/10 text-blue-500 shadow-sm ring-1 ring-gray-200/50 dark:ring-white/10' 
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
             }`}
             onClick={() => setActiveTab('project')}
           >
@@ -531,9 +531,9 @@ const MySkills = () => {
 
       {/* Skills List */}
       {filteredSkills.length > 0 ? (
-        <div className="bg-base-200/50 rounded-2xl border border-base-300 overflow-hidden">
+        <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-200/60 dark:border-white/10 overflow-hidden">
           {/* List Header */}
-          <div className="flex items-center gap-3 px-4 py-3 bg-base-200/80 border-b border-base-300 text-xs font-semibold text-base-content/60 uppercase tracking-wider">
+          <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-white/5 border-b border-gray-200/60 dark:border-white/10 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             <button
               className="shrink-0"
               onClick={toggleSelectAll}
@@ -552,12 +552,12 @@ const MySkills = () => {
           </div>
 
           {/* List Items */}
-          <div className="divide-y divide-base-300">
+          <div className="divide-y divide-gray-100 dark:divide-white/5">
             {filteredSkills.map((skill) => (
               <div
                 key={skill.id}
-                className={`flex items-center gap-3 px-4 py-3 hover:bg-base-200/50 transition-colors ${
-                  selectedIds.has(skill.id) ? 'bg-primary/5' : ''
+                className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${
+                  selectedIds.has(skill.id) ? 'bg-blue-50 dark:bg-blue-500/5' : ''
                 }`}
               >
                 {/* Checkbox */}
@@ -676,7 +676,7 @@ const MySkills = () => {
           </div>
         </div>
       ) : (
-        <div className="bg-base-100 rounded-2xl border border-base-200 p-12 text-center shadow-sm animate-fade-in">
+        <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-200/60 dark:border-white/10 p-12 text-center shadow-sm animate-fade-in">
           <FolderOpen size={48} strokeWidth={1} className="mx-auto mb-3 opacity-30 text-primary" />
           <p className="text-base-content/70 font-medium">
             {searchQuery 

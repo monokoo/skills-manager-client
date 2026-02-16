@@ -347,12 +347,12 @@ const Marketplace = () => {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-primary to-violet-500 rounded-xl">
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl">
               <Sparkles size={24} className="text-white" />
             </div>
-            <h2 className="text-3xl font-bold">{t('marketplace')}</h2>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('marketplace')}</h1>
           </div>
-          <p className="text-base-content/60 text-lg">
+          <p className="text-gray-500 dark:text-gray-400 text-lg">
             {t('marketplaceDesc')}
           </p>
           <div className="flex items-center gap-3 mt-2">
@@ -565,7 +565,7 @@ const Marketplace = () => {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-center mt-10 pb-8">
-              <div className="flex items-center gap-1 bg-base-200 p-1.5 rounded-2xl">
+              <div className="flex items-center gap-1 bg-gray-100 dark:bg-white/5 p-1.5 rounded-2xl border border-gray-200/60 dark:border-white/10">
                 <button
                   className="btn btn-sm btn-ghost rounded-xl"
                   disabled={page === 1}
