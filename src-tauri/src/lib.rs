@@ -385,15 +385,36 @@ fn parse_yaml_frontmatter(content: &str) -> (Option<String>, Option<String>, Opt
     let mut name = None;
     let mut version = None;
 
-    for line in &lines[1..end_index] {
-        let line = line.trim();
+    let frontmatter_lines = &lines[1..end_index];
+    let mut i = 0;
+    while i < frontmatter_lines.len() {
+        let line = frontmatter_lines[i].trim();
 
         // 解析 description 字段
         if line.starts_with("description:") {
             let value = line.trim_start_matches("description:").trim();
             // 移除引号
             let value = value.trim_matches('"').trim_matches('\'');
-            if !value.is_empty() {
+            // 处理 YAML 多行标记符 | 或 >
+            if value == "|" || value == ">" || value == "|+" || value == "|-" || value == ">+" || value == ">-" {
+                // 收集后续缩进行作为多行描述
+                let mut multi_lines: Vec<String> = Vec::new();
+                i += 1;
+                while i < frontmatter_lines.len() {
+                    let next = frontmatter_lines[i];
+                    if next.starts_with(' ') || next.starts_with('\t') {
+                        multi_lines.push(next.trim().to_string());
+                        i += 1;
+                    } else {
+                        break;
+                    }
+                }
+                let joined = multi_lines.join(" ");
+                if !joined.is_empty() {
+                    description = Some(joined);
+                }
+                continue;
+            } else if !value.is_empty() {
                 description = Some(value.to_string());
             }
         }
@@ -415,6 +436,8 @@ fn parse_yaml_frontmatter(content: &str) -> (Option<String>, Option<String>, Opt
                 version = Some(value.to_string());
             }
         }
+
+        i += 1;
     }
 
     (description, name, version)
@@ -1484,7 +1507,18 @@ pub fn run() {
             get_project_paths,
             analyze_github_repo,
             analyze_local_folder,
-            import_selected_skills
+            import_selected_skills,
+            open_url,
+            read_skill,
+            scan_skill_security,
+            scan_all_skills_security,
+            get_all_agents,
+            get_symlink_agents_config,
+            check_symlink_status,
+            create_symlink,
+            create_all_symlinks,
+            remove_symlink,
+            get_platform_info
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
