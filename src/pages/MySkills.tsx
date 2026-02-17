@@ -1166,6 +1166,7 @@ const MySkills = () => {
                                  setImportPath(e.target.value);
                                  if (analysisResult) clearAnalysisResult();
                                  if (formError) setFormError(null);
+                                 if (analysisError) setAnalysisError(null);
                                }}
                                autoFocus
                              />
@@ -1186,6 +1187,7 @@ const MySkills = () => {
                                          setImportPath(selected);
                                          if (analysisResult) clearAnalysisResult();
                                          if (formError) setFormError(null);
+                                         if (analysisError) setAnalysisError(null);
                                        }
                                      } else {
                                        console.warn('Native dialog is only available in Tauri app.');
