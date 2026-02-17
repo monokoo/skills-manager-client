@@ -1236,6 +1236,57 @@ pub struct AnalyzeResult {
     pub temp_path: String, // Path to temp clone for subsequent import
 }
 
+#[derive(Debug, Deserialize)]
+pub struct AnalyzeLocalRequest {
+    #[serde(rename = "sourcePath")]
+    pub source_path: String,
+}
+
+#[tauri::command(async)]
+async fn analyze_local_folder(request: AnalyzeLocalRequest) -> Result<AnalyzeResult, String> {
+    let source_path = PathBuf::from(request.source_path);
+    
+    let result = tokio::task::spawn_blocking(move || {
+        if !source_path.exists() {
+             return AnalyzeResult {
+                success: false,
+                message: "Source directory not found".to_string(),
+                skills: vec![],
+                temp_path: "".to_string(),
+            };
+        }
+
+        // Scan for SKILL.md
+        let mut discovered_skills = Vec::new();
+        for entry in WalkDir::new(&source_path).max_depth(5) {
+            if let Ok(entry) = entry {
+                let path = entry.path();
+                if path.file_name().map(|n| n == "SKILL.md").unwrap_or(false) {
+                    if let Some(skill_info) = parse_skill_md(&path.to_path_buf(), "local") {
+                        // Calculate relative path
+                        let relative_path = path.parent().unwrap().strip_prefix(&source_path).unwrap_or(path.parent().unwrap());
+                        
+                        discovered_skills.push(DiscoveredSkill {
+                            name: skill_info.name,
+                            path: relative_path.to_string_lossy().to_string(),
+                            description: skill_info.description,
+                        });
+                    }
+                }
+            }
+        }
+
+        AnalyzeResult {
+            success: true,
+            message: "Local analysis complete".to_string(),
+            skills: discovered_skills,
+            temp_path: source_path.to_string_lossy().to_string(),
+        }
+    }).await.map_err(|e| e.to_string())?;
+
+    Ok(result)
+}
+
 #[tauri::command(async)]
 async fn analyze_github_repo(request: AnalyzeRequest) -> Result<AnalyzeResult, String> {
     let repo_url = request.repo_url.clone();
@@ -1352,7 +1403,6 @@ async fn import_selected_skills(request: InstallSelectedRequest) -> Result<Impor
         }
 
         let mut success_count = 0;
-        let mut fail_count = 0;
 
         for rel_path in request.selected_paths {
             let source_dir = temp_path.join(&rel_path);
@@ -1372,7 +1422,6 @@ async fn import_selected_skills(request: InstallSelectedRequest) -> Result<Impor
             // Fallback to copy if rename fails
             if fs::rename(&source_dir, &target_dir).is_err() {
                  if let Err(_) = copy_dir_all(&source_dir, &target_dir) {
-                     fail_count += 1;
                      continue;
                  }
             }
@@ -1408,30 +1457,20 @@ async fn import_selected_skills(request: InstallSelectedRequest) -> Result<Impor
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             scan_skills,
             import_github_skill,
             uninstall_skill,
             check_skill_exists,
             import_local_skill,
-            get_project_paths,
             save_project_paths,
-            open_url,
-            read_skill,
-            scan_skill_security,
-            scan_all_skills_security,
-            get_all_agents,
-            get_symlink_agents_config,
-            check_symlink_status,
-            create_symlink,
-            create_all_symlinks,
-            remove_symlink,
-            get_platform_info,
+            get_project_paths,
             analyze_github_repo,
+            analyze_local_folder,
             import_selected_skills
         ])
         .run(tauri::generate_context!())

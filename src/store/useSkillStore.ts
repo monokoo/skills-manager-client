@@ -99,6 +99,7 @@ interface SkillStore {
   
   // New Analysis Actions
   analyzeGithubRepo: (url: string) => Promise<AnalyzeResult>;
+  analyzeLocalFolder: (path: string) => Promise<AnalyzeResult>;
   clearAnalysisResult: () => void;
   importSelectedSkills: (tempPath: string, selectedPaths: string[], repoUrl: string) => Promise<InstallResult>;
 
@@ -478,6 +479,20 @@ export const useSkillStore = create<SkillStore>()(
           } catch (error: any) {
               set({ isAnalyzing: false });
               throw new Error(error.message || 'Analysis failed');
+          }
+      },
+
+      analyzeLocalFolder: async (path: string) => {
+          set({ isAnalyzing: true, analysisResult: null });
+          try {
+              const result: AnalyzeResult = await invoke('analyze_local_folder', {
+                  request: { sourcePath: path }
+              });
+              set({ isAnalyzing: false, analysisResult: result });
+              return result;
+          } catch (error: any) {
+              set({ isAnalyzing: false });
+              throw new Error(error.message || 'Local folder analysis failed');
           }
       },
       

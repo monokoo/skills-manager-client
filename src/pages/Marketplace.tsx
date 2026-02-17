@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSkillStore } from '../store/useSkillStore';
-import { Download, Search, Star, ExternalLink, Check, Loader2, Shield, ShieldCheck, ShieldAlert, X, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles } from 'lucide-react';
+import { Download, Star, ExternalLink, Check, Loader2, Shield, ShieldCheck, ShieldAlert, X, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles } from 'lucide-react';
+import { SearchBox } from '../components/ui/SearchBox';
 import { getLocalizedDescription } from '../utils/i18n';
 import { invoke } from '@tauri-apps/api/core';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface SecurityReport {
   skillId: string;
@@ -24,6 +26,70 @@ interface InstallStatus {
   type: 'info' | 'success' | 'warning' | 'error';
   securityReport?: SecurityReport;
 }
+
+const BatchActionBar = ({ 
+  selectedCount, 
+  onInstall, 
+  onSelectAll, 
+  onClear, 
+  isInstalling 
+}: { 
+  selectedCount: number; 
+  onInstall: () => void; 
+  onSelectAll: () => void; 
+  onClear: () => void; 
+  isInstalling: boolean 
+}) => {
+  const { t } = useTranslation();
+  return (
+    <motion.div
+      initial={{ y: 20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 20, opacity: 0 }}
+      className="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-2xl px-2 md:px-4"
+    >
+      <div className="bg-white/60 dark:bg-black/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-3xl p-2 md:p-3 shadow-2xl flex items-center justify-between gap-2 md:gap-4">
+        <div className="flex items-center gap-2 md:gap-4 pl-1 md:pl-3">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider hidden xs:block">{t('batchMode')}</span>
+            <span className="text-xs md:text-sm font-black text-blue-500">
+              {selectedCount} <span className="hidden sm:inline">{t('selected')}</span>
+            </span>
+          </div>
+          <div className="h-6 md:h-8 w-px bg-gray-200 dark:bg-white/10" />
+          <div className="flex gap-1 md:gap-2">
+            <button
+              onClick={onSelectAll}
+              className="px-2 md:px-3 py-1 md:py-1.5 rounded-xl text-[10px] md:text-xs font-bold hover:bg-black/5 dark:hover:bg-white/5 transition-colors whitespace-nowrap"
+            >
+              {t('selectAll')}
+            </button>
+            <button
+              onClick={onClear}
+              className="px-2 md:px-3 py-1 md:py-1.5 rounded-xl text-[10px] md:text-xs font-bold text-red-500 hover:bg-red-500/10 transition-colors whitespace-nowrap"
+            >
+              {t('clear')}
+            </button>
+          </div>
+        </div>
+
+        <button
+          className="h-10 md:h-11 px-3 md:px-6 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl font-bold text-xs md:text-sm shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 disabled:opacity-50"
+          onClick={onInstall}
+          disabled={selectedCount === 0 || isInstalling}
+        >
+          {isInstalling ? (
+            <span className="loading loading-spinner loading-xs" />
+          ) : (
+            <Download size={16} className="md:w-[18px] md:h-[18px]" />
+          )}
+          <span className="hidden xs:inline">{t('installToProject', { count: selectedCount })}</span>
+          <span className="xs:hidden">{t('install')}</span>
+        </button>
+      </div>
+    </motion.div>
+  );
+};
 
 const Marketplace = () => {
   const { t, i18n } = useTranslation();
@@ -371,80 +437,53 @@ const Marketplace = () => {
         <div className="flex flex-wrap gap-3 items-center">
           {/* Batch Mode Toggle */}
           <button
-            className={`btn btn-sm gap-2 rounded-xl transition-all duration-200 ${
+            className={`flex items-center gap-2 px-4 h-11 rounded-2xl border transition-all duration-300 font-medium text-sm shadow-sm ${
               batchMode
-                ? 'bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/25'
-                : 'bg-base-200 hover:bg-base-300 border-0'
+                ? 'bg-blue-500 text-white border-transparent shadow-lg shadow-blue-500/25'
+                : 'bg-black/5 dark:bg-white/5 border-gray-200/60 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:bg-black/10 dark:hover:bg-white/10'
             }`}
             onClick={() => {
               setBatchMode(!batchMode);
               if (batchMode) clearBatchSelect();
             }}
           >
-            {batchMode ? <CheckSquare size={14} /> : <Square size={14} />}
+            <div className={`p-1 rounded-md transition-colors ${batchMode ? 'bg-white/20' : 'bg-black/5 dark:bg-white/10'}`}>
+              {batchMode ? <CheckSquare size={14} className="text-white" /> : <Square size={14} />}
+            </div>
             {t('batchMode')}
           </button>
 
           {/* Search */}
-          <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40" />
-            <input
-              className="input bg-base-200 border-0 pl-10 w-full md:w-64 rounded-xl focus:ring-2 focus:ring-primary/20"
-              placeholder={t('searchSkills')}
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setPage(1);
-              }}
-            />
-          </div>
+          <SearchBox
+            value={searchTerm}
+            onChange={(val) => {
+              setSearchTerm(val);
+              setPage(1);
+            }}
+            placeholder={t('searchSkills')}
+            width={200}
+            expandedWidth={260}
+          />
         </div>
       </div>
 
       {/* Batch Action Bar */}
-      {batchMode && (
-        <div className="flex items-center justify-between bg-gradient-to-r from-primary/10 to-violet-500/10 p-4 rounded-2xl border border-primary/20 animate-fade-in">
-          <div className="flex items-center gap-4">
-            <button
-              className="btn btn-xs btn-ghost rounded-lg hover:bg-white/10"
-              onClick={() => {
-                const uninstalledIds = currentSkills
-                  .filter(s => !isInstalled(s.id))
-                  .map(s => s.id);
-                selectAllBatch(uninstalledIds);
-              }}
-            >
-              {t('selectAll')}
-            </button>
-            <button
-              className="btn btn-xs btn-ghost rounded-lg hover:bg-white/10"
-              onClick={clearBatchSelect}
-            >
-              {t('clear')}
-            </button>
-            <span className="text-sm font-medium text-base-content/70">
-              {t('selected', { count: batchSelectedSkills.length })}
-            </span>
-          </div>
-          <button
-            className="btn btn-primary btn-sm gap-2 rounded-xl shadow-lg shadow-primary/25"
-            onClick={handleBatchInstall}
-            disabled={batchSelectedSkills.length === 0 || isBatchInstalling}
-          >
-            {isBatchInstalling ? (
-              <>
-                <span className="loading loading-spinner loading-xs" />
-                {t('installing')}
-              </>
-            ) : (
-              <>
-                <Download size={16} />
-                {t('installToProject', { count: batchSelectedSkills.length })}
-              </>
-            )}
-          </button>
-        </div>
-      )}
+      <AnimatePresence>
+        {batchMode && (
+          <BatchActionBar
+            selectedCount={batchSelectedSkills.length}
+            onInstall={handleBatchInstall}
+            onSelectAll={() => {
+              const uninstalledIdsInCurrentPage = currentSkills
+                .filter(s => !isInstalled(s.id))
+                .map(s => s.id);
+              selectAllBatch(uninstalledIdsInCurrentPage);
+            }}
+            onClear={clearBatchSelect}
+            isInstalling={isBatchInstalling}
+          />
+        )}
+      </AnimatePresence>
 
       {isLoading && (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -457,45 +496,60 @@ const Marketplace = () => {
         <>
           {/* Skills Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {currentSkills.map((skill, index) => {
+            {currentSkills.map((skill) => {
               const installed = isInstalled(skill.id);
               const isCurrentlyInstalling = installingSkillId === skill.id;
               const isSelected = batchSelectedSkills.includes(skill.id);
               return (
-                <div
+                <motion.div
                   key={skill.id}
-                  className={`skill-card h-full flex flex-col cursor-pointer animate-slide-up ${
-                    batchMode && isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-base-100' : ''
-                  } ${installed ? 'opacity-75' : ''}`}
-                  style={{ animationDelay: `${index * 30}ms` }}
+                  layout
+                  className={`group relative bg-white/50 dark:bg-gray-900/40 backdrop-blur-sm rounded-3xl border transition-all duration-500 overflow-hidden flex flex-col cursor-pointer hover:shadow-2xl hover:shadow-blue-500/10 ${
+                    isSelected 
+                      ? 'border-blue-500/50 ring-1 ring-blue-500/20 bg-blue-500/[0.03] scale-[1.01]' 
+                      : 'border-white/20 dark:border-white/10 hover:border-blue-500/30'
+                  }`}
                   onClick={() => {
                     if (batchMode && !installed) {
                       toggleBatchSelect(skill.id);
                     }
                   }}
                 >
-                  <div className="card-body p-5 flex-1">
-                    {/* Header */}
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-2">
+                  <div className="p-6 flex-1 flex flex-col">
+                    {/* Header with Checkbox */}
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="flex items-center gap-4">
                         {batchMode && !installed && (
-                          <input
-                            type="checkbox"
-                            className="checkbox checkbox-sm checkbox-primary rounded-lg"
-                            checked={isSelected}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              toggleBatchSelect(skill.id);
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          />
+                          <motion.div
+                            initial={false}
+                            animate={{ scale: 1 }}
+                            whileTap={{ scale: 0.8 }}
+                            className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
+                              isSelected 
+                                ? 'bg-blue-500 border-blue-500 shadow-lg shadow-blue-500/30' 
+                                : 'bg-white/10 border-gray-300 dark:border-white/20 hover:border-blue-500/50'
+                            }`}
+                          >
+                            {isSelected && <Check size={14} className="text-white" />}
+                          </motion.div>
                         )}
-                        <img src={skill.authorAvatar} alt={skill.author} className="w-7 h-7 rounded-full ring-2 ring-base-200" />
-                        <span className="text-sm text-base-content/60 font-medium">{skill.author}</span>
+                        <div className="p-3 bg-white dark:bg-white/10 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 group-hover:scale-110 transition-transform duration-500">
+                          {skill.authorAvatar ? (
+                            <img src={skill.authorAvatar} alt={skill.name} className="w-8 h-8 object-contain rounded-full" />
+                          ) : (
+                            <Sparkles className="w-8 h-8 text-blue-500" />
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5 text-amber-500 text-sm font-semibold bg-amber-500/10 px-2 py-1 rounded-lg">
-                        <Star size={12} fill="currentColor" />
-                        <span>{skill.stars.toLocaleString()}</span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] font-black px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full flex items-center gap-1">
+                          <Star size={10} fill="currentColor" />
+                          {skill.stars.toLocaleString()}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <img src={skill.authorAvatar} alt={skill.author} className="w-5 h-5 rounded-full ring-1 ring-base-200" />
+                          <span className="text-[10px] font-bold text-gray-400">{skill.author}</span>
+                        </div>
                       </div>
                     </div>
 
@@ -509,32 +563,38 @@ const Marketplace = () => {
 
                     {/* Actions */}
                     <div className="flex justify-between items-center pt-4 border-t border-base-200">
-                      <button
-                        onClick={(e) => {
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={(e: React.MouseEvent) => {
                           e.stopPropagation();
                           handleOpenSource(skill.githubUrl);
                         }}
-                        className="btn btn-ghost btn-sm gap-1.5 text-base-content/50 hover:text-base-content rounded-lg"
+                        className="h-10 px-4 flex items-center gap-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-xl bg-black/5 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 transition-all text-sm font-medium"
                       >
                         <ExternalLink size={14} />
                         {t('source')}
-                      </button>
+                      </motion.button>
 
                       {installed ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success/10 text-success rounded-lg text-sm font-medium">
+                        <div className="inline-flex items-center h-10 gap-1.5 px-4 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl text-sm font-bold border border-emerald-500/20">
                           <Check size={14} />
                           {t('installed')}
-                        </span>
+                        </div>
                       ) : batchMode ? (
-                        <span className="text-xs text-base-content/50 font-medium">
-                          {isSelected
-                            ? t('selected')
-                            : t('clickToSelect')}
-                        </span>
+                        <div className={`h-10 flex items-center px-4 text-xs font-bold rounded-xl border transition-all ${
+                          isSelected 
+                            ? 'bg-blue-500 text-white border-transparent' 
+                            : 'bg-black/5 dark:bg-white/5 text-gray-400 border-dashed border-gray-300 dark:border-white/10'
+                        }`}>
+                          {isSelected ? t('selected') : t('clickToSelect')}
+                        </div>
                       ) : (
-                        <button
-                          className="btn btn-primary btn-sm gap-2 rounded-lg shadow-lg shadow-primary/20"
-                          onClick={(e) => {
+                        <motion.button
+                          whileHover={{ scale: 1.05, boxShadow: "0 10px 15px -3px rgba(59, 130, 246, 0.3)" }}
+                          whileTap={{ scale: 0.95 }}
+                          className="h-10 px-5 flex items-center gap-2 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-bold text-white shadow-md hover:shadow-lg transition-all"
+                          onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();
                             handleInstall(skill);
                           }}
@@ -549,52 +609,52 @@ const Marketplace = () => {
                             </>
                           ) : (
                             <>
-                              <Download size={14} />
+                              <Download size={16} />
                               {t('install')}
                             </>
                           )}
-                        </button>
+                        </motion.button>
                       )}
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex justify-center mt-10 pb-8">
-              <div className="flex items-center gap-1 bg-gray-100 dark:bg-white/5 p-1.5 rounded-2xl border border-gray-200/60 dark:border-white/10">
+            <div className="flex justify-center mt-12 pb-24">
+              <div className="flex items-center gap-1.5 bg-black/5 dark:bg-white/5 p-2 rounded-2xl border border-gray-200/60 dark:border-white/10 backdrop-blur-md shadow-sm">
                 <button
-                  className="btn btn-sm btn-ghost rounded-xl"
+                  className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-20 transition-all text-gray-500"
                   disabled={page === 1}
                   onClick={() => {
                     setPage(1);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                 >
-                  <ChevronsLeft size={16} />
+                  <ChevronsLeft size={18} />
                 </button>
                 <button
-                  className="btn btn-sm btn-ghost rounded-xl"
+                  className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-20 transition-all text-gray-500"
                   disabled={page === 1}
                   onClick={() => {
                     setPage(p => Math.max(1, p - 1));
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                 >
-                  <ChevronLeft size={16} />
+                  <ChevronLeft size={18} />
                 </button>
 
-                <div className="flex items-center gap-1 px-2">
+                <div className="flex items-center gap-1.5 px-2">
                   {getPageNumbers().map((pageNum) => (
                     <button
                       key={pageNum}
-                      className={`btn btn-sm min-w-[2.5rem] rounded-xl transition-all duration-200 ${
+                      className={`w-10 h-10 flex items-center justify-center rounded-xl text-sm font-bold transition-all duration-300 ${
                         pageNum === page
-                          ? 'btn-primary shadow-lg shadow-primary/25'
-                          : 'btn-ghost'
+                          ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/25 scale-105'
+                          : 'hover:bg-black/10 dark:hover:bg-white/10 text-gray-500'
                       }`}
                       onClick={() => {
                         setPage(pageNum);
@@ -607,24 +667,24 @@ const Marketplace = () => {
                 </div>
 
                 <button
-                  className="btn btn-sm btn-ghost rounded-xl"
+                  className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-20 transition-all text-gray-500"
                   disabled={page === totalPages}
                   onClick={() => {
                     setPage(p => Math.min(totalPages, p + 1));
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                 >
-                  <ChevronRight size={16} />
+                  <ChevronRight size={18} />
                 </button>
                 <button
-                  className="btn btn-sm btn-ghost rounded-xl"
+                  className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-20 transition-all text-gray-500"
                   disabled={page === totalPages}
                   onClick={() => {
                     setPage(totalPages);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                 >
-                  <ChevronsRight size={16} />
+                  <ChevronsRight size={18} />
                 </button>
               </div>
             </div>

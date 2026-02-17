@@ -2,9 +2,15 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useSkillStore } from '../store/useSkillStore';
-import { Trash2, Eye, FolderOpen, X, Github, HardDrive, Plus, ExternalLink, RefreshCw, AlertCircle, CheckCircle, Package, Calendar, Download, CheckSquare, Square, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { 
+  Trash2, Eye, FolderOpen, X, Github, HardDrive, Plus, ExternalLink, 
+  RefreshCw, AlertCircle, CheckCircle, Package, Calendar, Download, 
+  CheckSquare, Square, ArrowUpDown, ArrowUp, ArrowDown 
+} from 'lucide-react';
+import { SearchBox } from '../components/ui/SearchBox';
 import type { InstalledSkill } from '../types';
 import { invoke } from '@tauri-apps/api/core';
+// Using dynamic import for @tauri-apps/plugin-dialog to ensure browser compatibility
 
 interface CommandResult {
   success: boolean;
@@ -16,14 +22,13 @@ const MySkills = () => {
   const {
     installedSkills,
     scanLocalSkills,
-    importFromGithub,
-    importFromLocal,
     updateSelectedSkills,
     checkSkillUpdates,
     reinstallSkill,
     isCheckingUpdates,
     isUpdating,
     analyzeGithubRepo,
+    analyzeLocalFolder,
     isAnalyzing,
     analysisResult,
     clearAnalysisResult,
@@ -42,6 +47,7 @@ const MySkills = () => {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteResult, setDeleteResult] = useState<{show: boolean, success: boolean, message: string}>({show: false, success: false, message: ''});
+  const [formError, setFormError] = useState<string | null>(null);
 
   // 多选状态
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -231,70 +237,94 @@ const MySkills = () => {
     
     setIsImporting(true);
     setAnalysisError(null);
+    setFormError(null);
+
+    // Form missing validation
+    if (importType === 'github' && !importUrl.trim()) {
+      setFormError('请输入仓库 URL');
+      setIsImporting(false);
+      return;
+    }
+    if (importType === 'local' && !importPath.trim()) {
+      setFormError('请选择文件路径');
+      setIsImporting(false);
+      return;
+    }
 
     try {
-      let success = false;
-      let msg = '';
+      if (importType === 'local') {
+          if (!analysisResult) {
+              // First step: analyze local folder
+              const result = await analyzeLocalFolder(importPath);
+              if (result.success) {
+                  const allPaths = new Set(result.skills.map(s => s.path));
+                  setSelectedSkillPaths(allPaths);
+              } else {
+                  setAnalysisError(result.message);
+              }
+              setIsImporting(false);
+              return;
+          }
 
-      if (importType === 'github') {
-        if (!importUrl.trim()) throw new Error(t('enterGithubUrl'));
-        
-        if (analysisResult && analysisResult.skills.length > 0) {
-            // Import selected logic
-            const selected = Array.from(selectedSkillPaths);
-            if (selected.length === 0) {
-                setAnalysisError("Please select at least one skill to import.");
-                setIsImporting(false);
-                return;
-            }
-            const result = await importSelectedSkills(analysisResult.tempPath, selected, importUrl);
-            success = result.success;
-            msg = result.message;
-        } else {
-            // Standard import
-            const result = await importFromGithub(importUrl);
-            success = result.success;
-            msg = result.message || t('importSuccessGitHub');
+          // Second step: perform import
+          if (selectedSkillPaths.size === 0) {
+              setAnalysisError('请至少选择一个技能进行导入');
+              setIsImporting(false);
+              return;
+          }
+
+          const result = await importSelectedSkills(
+              importPath, 
+              Array.from(selectedSkillPaths),
+              '' 
+          );
+
+          if (result.success) {
+            setDeleteResult({ show: true, success: true, message: result.message || t('importSuccessLocal') });
+            setImportType(null);
+            setImportPath('');
+            setSelectedSkillPaths(new Set());
+            clearAnalysisResult();
+            setShowImportModal(false);
+          } else {
+            setAnalysisError(result.message);
+          }
+      } else if (importType === 'github') {
+        if (!analysisResult) {
+            await handleAnalyze(); 
+            setIsImporting(false);
+            return;
         }
-      } else if (importType === 'local') {
-        if (!importPath.trim()) throw new Error(t('enterLocalPath'));
-        const result = await importFromLocal(importPath);
-        success = result.success;
-        msg = result.message || t('importSuccessLocal');
-      }
 
-      if (success) {
-          setDeleteResult({
-            show: true, 
-            success: true, 
-            message: msg
-          });
-          setShowImportModal(false);
-          setImportUrl('');
-          setImportPath('');
+        if (selectedSkillPaths.size === 0) {
+            setAnalysisError('请选择要导入的技能');
+            setIsImporting(false);
+            return;
+        }
+
+        const result = await importSelectedSkills(
+            analysisResult.tempPath,
+            Array.from(selectedSkillPaths),
+            importUrl
+        );
+
+        if (result.success) {
+          setDeleteResult({ show: true, success: true, message: result.message || t('importSuccessGitHub') });
           setImportType(null);
-          clearAnalysisResult();
+          setImportUrl('');
           setSelectedSkillPaths(new Set());
-      } else {
-          throw new Error(msg || 'Import failed');
+          clearAnalysisResult();
+          setShowImportModal(false);
+        } else {
+          setAnalysisError(result.message);
+        }
       }
-      
     } catch (error) {
       console.error('[UI] Import failed:', error);
       const errMsg = error instanceof Error ? error.message : String(error);
-      // If analysis error, stay in modal
-      if (analysisResult) {
-          setAnalysisError(errMsg);
-      } else {
-          setDeleteResult({
-            show: true, 
-            success: false, 
-            message: `${t('importError')}: ${errMsg}`
-          });
-      }
+      setAnalysisError(errMsg);
     } finally {
       setIsImporting(false);
-      // Only clear toast if we set simple deleteResult (logic is a bit mixed here, but effectively keeps toast)
       if (!analysisResult) {
           setTimeout(() => setDeleteResult((prev) => ({ ...prev, show: false })), 3000);
       }
@@ -306,6 +336,10 @@ const MySkills = () => {
     setImportType(null);
     setImportUrl('');
     setImportPath('');
+    clearAnalysisResult(); // Clear analysis result on modal close
+    setSelectedSkillPaths(new Set()); // Clear selected paths
+    setAnalysisError(null); // Clear any analysis errors
+    setFormError(null); // Clear any form errors
   };
 
   const formatDate = (timestamp: number) => {
@@ -413,99 +447,93 @@ const MySkills = () => {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          {/* Search Input */}
-          <div className="relative group overflow-hidden">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-base-content/40 transition-colors group-focus-within:text-primary">
-              {importType === 'local' ? <FolderOpen size={16} /> : <Eye size={16} className="hidden" />}
-              {/* 这里借用一下图标 */}
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <input
-              type="text"
-              placeholder={t('searchPlaceholder') || "搜索技能名称或描述..."}
-              className="input input-sm pl-10 pr-4 w-64 bg-base-100 hover:bg-base-200 focus:bg-base-100 border-base-200 focus:border-primary/50 rounded-xl transition-all duration-300 placeholder:text-base-content/30 text-sm"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button 
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-base-content/30 hover:text-base-content/60"
-                onClick={() => setSearchQuery('')}
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-
-          <button
-            className="btn btn-ghost btn-sm gap-2 rounded-xl border border-transparent hover:border-base-300"
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="flex items-center gap-2 px-4 h-12 rounded-2xl border border-gray-200/60 dark:border-white/10
+              bg-black/5 dark:bg-white/5 text-gray-600 dark:text-gray-300 text-sm font-medium
+              hover:bg-white/80 dark:hover:bg-white/10 hover:border-blue-500/30 transition-all duration-200 shadow-sm"
             onClick={() => checkSkillUpdates()}
             disabled={isCheckingUpdates}
           >
-            {isCheckingUpdates ? (
-              <span className="loading loading-spinner loading-xs" />
-            ) : (
-              <RefreshCw size={16} />
-            )}
+            <motion.div
+              animate={isCheckingUpdates ? { rotate: 360 } : { rotate: 0 }}
+              transition={isCheckingUpdates ? { duration: 1, repeat: Infinity, ease: "linear" } : { duration: 0.5 }}
+            >
+              <RefreshCw size={16} className={isCheckingUpdates ? 'text-blue-500' : ''} />
+            </motion.div>
             {t('checkUpdates')}
-          </button>
-          <button
-            className="btn btn-primary gap-2 rounded-xl shadow-lg shadow-primary/25 border-none
-              bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500
-              dark:from-blue-500 dark:to-indigo-500 dark:hover:from-blue-400 dark:hover:to-indigo-400
-              transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.02, boxShadow: "0 10px 25px -5px rgba(59, 130, 246, 0.4)" }}
+            whileTap={{ scale: 0.98 }}
+            className="flex items-center gap-2 px-6 h-12 rounded-2xl font-semibold text-sm text-white border-none shadow-lg
+              bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-700
+              transition-all duration-300 relative overflow-hidden group whitespace-nowrap"
             onClick={() => setShowImportModal(true)}
           >
-            <Plus size={18} />
-            {t('importSkill')}
-          </button>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer z-0" />
+            <Plus size={18} className="relative z-10" />
+            <span className="relative z-10">{t('importSkill')}</span>
+          </motion.button>
         </div>
       </div>
 
-      {/* Tabs & Batch Actions */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <div role="tablist" className="tabs tabs-boxed bg-gray-100 dark:bg-white/5 p-1 rounded-xl border border-gray-200/60 dark:border-white/10">
-          <a
-            role="tab"
-            className={`tab transition-all duration-300 rounded-lg text-sm font-medium ${
-              activeTab === 'all' 
-              ? 'bg-white dark:bg-white/10 text-blue-500 shadow-sm ring-1 ring-gray-200/50 dark:ring-white/10' 
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-            }`}
-            onClick={() => setActiveTab('all')}
-          >
-            {t('all')} ({installedSkills.length})
-          </a>
-          <a
-            role="tab"
-            className={`tab transition-all duration-300 rounded-lg text-sm font-medium ${
-              activeTab === 'system' 
-              ? 'bg-white dark:bg-white/10 text-blue-500 shadow-sm ring-1 ring-gray-200/50 dark:ring-white/10' 
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-            }`}
-            onClick={() => setActiveTab('system')}
-          >
-            <span className="flex items-center gap-1.5">
-              <span className={`w-1.5 h-1.5 rounded-full ${activeTab === 'system' ? 'bg-primary' : 'bg-base-content/20'}`} />
-              {t('systemLevel')} ({installedSkills.filter(s => s.type === 'system').length})
-            </span>
-          </a>
-          <a
-            role="tab"
-            className={`tab transition-all duration-300 rounded-lg text-sm font-medium ${
-              activeTab === 'project' 
-              ? 'bg-white dark:bg-white/10 text-blue-500 shadow-sm ring-1 ring-gray-200/50 dark:ring-white/10' 
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-            }`}
-            onClick={() => setActiveTab('project')}
-          >
-             <span className="flex items-center gap-1.5">
-              <span className={`w-1.5 h-1.5 rounded-full ${activeTab === 'project' ? 'bg-accent' : 'bg-base-content/20'}`} />
-              {t('projectLevel')} ({installedSkills.filter(s => s.type === 'project').length})
-            </span>
-          </a>
+      {/* Tabs & Search & Batch Actions */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+          <div role="tablist" className="tabs tabs-boxed bg-black/5 dark:bg-white/5 p-1 rounded-2xl border border-gray-200/60 dark:border-white/10">
+            <a
+              role="tab"
+              className={`tab transition-all duration-300 rounded-lg text-sm font-medium ${
+                activeTab === 'all' 
+                ? 'bg-white dark:bg-white/10 text-blue-500 shadow-sm ring-1 ring-gray-200/50 dark:ring-white/10' 
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+              onClick={() => setActiveTab('all')}
+            >
+              {t('all')} ({installedSkills.length})
+            </a>
+            <a
+              role="tab"
+              className={`tab transition-all duration-300 rounded-lg text-sm font-medium ${
+                activeTab === 'system' 
+                ? 'bg-white dark:bg-white/10 text-blue-500 shadow-sm ring-1 ring-gray-200/50 dark:ring-white/10' 
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+              onClick={() => setActiveTab('system')}
+            >
+              <span className="flex items-center gap-1.5">
+                <span className={`w-1.5 h-1.5 rounded-full ${activeTab === 'system' ? 'bg-primary' : 'bg-base-content/20'}`} />
+                {t('systemLevel')} ({installedSkills.filter(s => s.type === 'system').length})
+              </span>
+            </a>
+            <a
+              role="tab"
+              className={`tab transition-all duration-300 rounded-lg text-sm font-medium ${
+                activeTab === 'project' 
+                ? 'bg-white dark:bg-white/10 text-blue-500 shadow-sm ring-1 ring-gray-200/50 dark:ring-white/10' 
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+              onClick={() => setActiveTab('project')}
+            >
+               <span className="flex items-center gap-1.5">
+                <span className={`w-1.5 h-1.5 rounded-full ${activeTab === 'project' ? 'bg-accent' : 'bg-base-content/20'}`} />
+                {t('projectLevel')} ({installedSkills.filter(s => s.type === 'project').length})
+              </span>
+            </a>
+          </div>
+
+          {!selectedIds.size && (
+            <SearchBox
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder={t('searchPlaceholder') || "搜索技能名称或描述..."}
+              width={200}
+              expandedWidth={280}
+            />
+          )}
         </div>
 
         {/* Batch Actions */}
@@ -515,7 +543,7 @@ const MySkills = () => {
               {t('selectedCount', { count: selectedIds.size })}
             </span>
             <button
-              className="btn btn-sm btn-primary gap-2 rounded-lg"
+              className="btn btn-sm btn-primary gap-2 rounded-xl h-9"
               onClick={handleBatchUpdate}
               disabled={isUpdating || updatableSelected.length === 0}
             >
@@ -528,7 +556,7 @@ const MySkills = () => {
               {updatableSelected.length > 0 && ` (${updatableSelected.length})`}
             </button>
             <button
-              className="btn btn-sm btn-error btn-outline gap-2 rounded-lg"
+              className="btn btn-sm btn-error btn-outline gap-2 rounded-xl h-9"
               onClick={handleBatchDelete}
               disabled={isDeleting}
             >
@@ -540,7 +568,7 @@ const MySkills = () => {
               {t('batchDelete')}
             </button>
             <button
-              className="btn btn-sm btn-ghost rounded-lg"
+              className="btn btn-sm btn-ghost rounded-xl h-9"
               onClick={() => setSelectedIds(new Set())}
             >
               {t('cancel')}
@@ -549,9 +577,10 @@ const MySkills = () => {
         )}
       </div>
 
-      {/* Skills List */}
-      {filteredSkills.length > 0 ? (
-        <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-200/60 dark:border-white/10 overflow-hidden">
+      {/* Skills List Area - Added min-height to prevent layout jump */}
+      <div className="min-h-[400px]">
+        {filteredSkills.length > 0 ? (
+          <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-200/60 dark:border-white/10 overflow-hidden shadow-sm">
           {/* List Header */}
           <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-white/5 border-b border-gray-200/60 dark:border-white/10 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             <button
@@ -729,29 +758,32 @@ const MySkills = () => {
               </div>
             ))}
           </div>
-        </div>
-      ) : (
-        <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-200/60 dark:border-white/10 p-12 text-center shadow-sm animate-fade-in">
-          <FolderOpen size={48} strokeWidth={1} className="mx-auto mb-3 opacity-30 text-primary" />
-          <p className="text-base-content/70 font-medium">
-            {searchQuery 
-              ? t('noSearchResults', { query: searchQuery }) 
-              : t('noSkillsFound', { context: activeTab })
-            }
-          </p>
-          <p className="text-xs mt-2 text-base-content/40">
-            {searchQuery ? t('clearSearchTip') : t('installTip')}
-          </p>
-          {searchQuery && (
-            <button 
-              className="btn btn-ghost btn-sm mt-4 rounded-xl text-primary"
-              onClick={() => setSearchQuery('')}
-            >
-              {t('clearSearch')}
-            </button>
-          )}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-200/60 dark:border-white/10 p-12 text-center shadow-sm animate-fade-in flex flex-col items-center justify-center min-h-[400px]">
+            <div className="mt-[-4px]"> {/* Re-aligning empty state icon to match list item top offset */}
+              <FolderOpen size={48} strokeWidth={1} className="mx-auto mb-3 opacity-30 text-primary" />
+              <p className="text-base-content/70 font-medium">
+                {searchQuery 
+                  ? t('noSearchResults', { query: searchQuery }) 
+                  : t('noSkillsFound', { context: activeTab })
+                }
+              </p>
+              <p className="text-xs mt-2 text-base-content/40">
+                {searchQuery ? t('clearSearchTip') : t('installTip')}
+              </p>
+              {searchQuery && (
+                <button 
+                  className="btn btn-ghost btn-sm mt-4 rounded-xl text-primary"
+                  onClick={() => setSearchQuery('')}
+                >
+                  {t('clearSearch')}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* View Modal */}
       {showViewModal && selectedSkill && (
@@ -916,7 +948,10 @@ const MySkills = () => {
                       className="group flex items-start gap-4 p-4 bg-white/50 dark:bg-white/5 
                         hover:bg-white/80 dark:hover:bg-white/10 cursor-pointer transition-all 
                         rounded-2xl border border-gray-100 dark:border-white/5"
-                      onClick={() => setImportType('github')}
+                      onClick={() => {
+                        setImportType('github');
+                        setFormError(null);
+                      }}
                     >
                       <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-500/20 
                         flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0
@@ -937,7 +972,10 @@ const MySkills = () => {
                       className="group flex items-start gap-4 p-4 bg-white/50 dark:bg-white/5 
                         hover:bg-white/80 dark:hover:bg-white/10 cursor-pointer transition-all 
                         rounded-2xl border border-gray-100 dark:border-white/5"
-                      onClick={() => setImportType('local')}
+                      onClick={() => {
+                        setImportType('local');
+                        setFormError(null);
+                      }}
                     >
                       <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-500/20 
                         flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0
@@ -956,10 +994,10 @@ const MySkills = () => {
                   /* Input View */
                   <div className="space-y-6">
                     {importType === 'github' ? (
-                      <div className="space-y-4">
+                      <div className="space-y-5">
                         <div className="form-control">
-                          <label className="label py-1">
-                            <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400 dark:text-gray-500">
+                          <label className="label pt-0 pb-2">
+                            <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-base-content/40">
                               {t('repositoryUrl')}
                             </span>
                           </label>
@@ -967,30 +1005,69 @@ const MySkills = () => {
                             <input
                               type="text"
                               placeholder="https://github.com/username/skill-name"
-                              className="input flex-1 h-11 bg-white dark:bg-white/5 border-gray-200/60 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/20 transition-all font-mono text-sm"
+                              className={`input flex-1 h-12 pl-4 pr-4 bg-black/5 dark:bg-white/5 
+                                border-gray-200/60 dark:border-white/10 rounded-2xl 
+                                focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/40 
+                                transition-all duration-300 font-mono text-xs shadow-inner
+                                placeholder:text-base-content/20
+                                ${formError && importType === 'github' ? 'border-red-500 focus:ring-red-500/10 focus:border-red-500/50' : ''}`}
                               value={importUrl}
                               onChange={(e) => {
                                 setImportUrl(e.target.value);
                                 if (analysisResult) clearAnalysisResult();
+                                if (formError) setFormError(null);
                               }}
                               autoFocus
                             />
-                            <button
-                              className={`btn btn-primary h-11 min-w-[100px] rounded-xl border-none shadow-md shadow-blue-500/20 ${isAnalyzing ? 'loading' : ''}`}
+                            <motion.button
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              className={`h-12 min-w-[100px] px-4 rounded-2xl border border-white/20 dark:border-white/10 
+                                bg-white/10 dark:bg-white/5 backdrop-blur-md font-medium text-sm
+                                hover:bg-blue-500 hover:border-blue-400 hover:text-white
+                                transition-all duration-200 flex items-center justify-center gap-2 shadow-sm
+                                ${isAnalyzing ? 'cursor-not-allowed opacity-50' : ''}`}
                               onClick={handleAnalyze}
                               disabled={!importUrl || isAnalyzing || isImporting}
                             >
+                              {isAnalyzing ? (
+                                <span className="loading loading-spinner loading-xs" />
+                              ) : (
+                                <RefreshCw size={14} />
+                              )}
                               {isAnalyzing ? t('analyzing') : t('analyze')}
-                            </button>
+                            </motion.button>
                           </div>
-                          {!analysisResult && (
-                            <div className="mt-3 px-1">
-                              <span className="text-[10px] text-gray-400 flex items-center gap-1">
-                                <AlertCircle size={10} />
-                                {t('repoMustContainSkill')}
-                              </span>
-                            </div>
-                          )}
+
+                          <div className="mt-2 h-6 flex items-center px-1 overflow-hidden">
+                            <AnimatePresence mode="wait">
+                              {formError && importType === 'github' ? (
+                                <motion.div
+                                  key="error"
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -10 }}
+                                  className="flex items-center gap-1.5 text-red-500 text-[11px] font-medium"
+                                >
+                                  <AlertCircle size={12} className="shrink-0" />
+                                  <span>{formError}</span>
+                                </motion.div>
+                              ) : (
+                                !analysisResult && (
+                                  <motion.div 
+                                    key="tip"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="flex items-center gap-1.5 text-base-content/30 dark:text-gray-500 text-[11px] italic"
+                                  >
+                                    <AlertCircle size={12} className="shrink-0 opacity-50" />
+                                    <span>{t('repoMustContainSkill')}</span>
+                                  </motion.div>
+                                )
+                              )}
+                            </AnimatePresence>
+                          </div>
                         </div>
 
                         {/* Analysis Results */}
@@ -1059,26 +1136,90 @@ const MySkills = () => {
                         </AnimatePresence>
                       </div>
                     ) : (
-                      <div className="space-y-4">
+                      <div className="space-y-5">
                         <div className="form-control">
-                          <label className="label py-1">
-                            <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400 dark:text-gray-500">
+                          <label className="label pt-0 pb-2">
+                            <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-base-content/40">
                               {t('localFolderPath')}
                             </span>
                           </label>
-                          <input
-                            type="text"
-                            placeholder="/Users/user/Downloads/my-skill"
-                            className="input h-11 bg-white dark:bg-white/5 border-gray-200/60 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/20 transition-all font-mono text-sm"
-                            value={importPath}
-                            onChange={(e) => setImportPath(e.target.value)}
-                            autoFocus
-                          />
-                          <div className="mt-3 px-1">
-                            <span className="text-[10px] text-gray-400 flex items-center gap-1">
-                              <AlertCircle size={10} />
-                              {t('folderMustContainSkill')}
-                            </span>
+                          
+                          <div className="relative group">
+                            <input
+                              type="text"
+                              placeholder="/Users/user/Downloads/my-skill"
+                              className={`input w-full h-12 pl-4 pr-12 bg-black/5 dark:bg-white/5 
+                                border-gray-200/60 dark:border-white/10 rounded-2xl 
+                                focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/40 
+                                transition-all duration-300 font-mono text-xs shadow-inner
+                                placeholder:text-base-content/20
+                                ${formError && importType === 'local' ? 'border-red-500 focus:ring-red-500/10 focus:border-red-500/50' : ''}`}
+                               value={importPath}
+                               onChange={(e) => {
+                                 setImportPath(e.target.value);
+                                 if (analysisResult) clearAnalysisResult();
+                                 if (formError) setFormError(null);
+                               }}
+                               autoFocus
+                             />
+                             <div className="absolute right-3 inset-y-0 flex items-center">
+                               <button 
+                                 className="p-1.5 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors text-base-content/40 hover:text-blue-500"
+                                 onClick={async (e) => {
+                                   e.preventDefault();
+                                   try {
+                                     // Check if we are in Tauri environment
+                                     if ((window as any).__TAURI_INTERNALS__) {
+                                       const { open: openDialog } = await import('@tauri-apps/plugin-dialog');
+                                       const selected = await openDialog({
+                                         directory: true,
+                                         multiple: false,
+                                       });
+                                       if (selected && typeof selected === 'string') {
+                                         setImportPath(selected);
+                                         if (analysisResult) clearAnalysisResult();
+                                         if (formError) setFormError(null);
+                                       }
+                                     } else {
+                                       console.warn('Native dialog is only available in Tauri app.');
+                                       setFormError('原生对话框仅在桌面客户端可用，请手动输入路径');
+                                     }
+                                   } catch (err) {
+                                     console.error('Failed to open directory dialog:', err);
+                                   }
+                                 }}
+                               >
+                                 <FolderOpen size={16} />
+                               </button>
+                             </div>
+                           </div>
+
+                          <div className="mt-2 h-6 flex items-center px-1 overflow-hidden">
+                            <AnimatePresence mode="wait">
+                              {formError && importType === 'local' ? (
+                                <motion.div
+                                  key="error"
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -10 }}
+                                  className="flex items-center gap-1.5 text-red-500 text-[11px] font-medium"
+                                >
+                                  <AlertCircle size={12} className="shrink-0" />
+                                  <span>{formError}</span>
+                                </motion.div>
+                              ) : (
+                                <motion.div 
+                                  key="tip"
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -10 }}
+                                  className="flex items-center gap-1.5 text-base-content/30 dark:text-gray-500 text-[11px] italic"
+                                >
+                                  <AlertCircle size={12} className="shrink-0 opacity-50" />
+                                  <span>{t('folderMustContainSkill')}</span>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
                         </div>
                       </div>
@@ -1112,17 +1253,22 @@ const MySkills = () => {
                       >
                         {t('cancel')}
                       </button>
-                      <button
-                        className="btn btn-primary px-6 rounded-xl shadow-lg shadow-primary/25 border-none h-10"
-                        onClick={handleImport}
-                        disabled={
-                          isImporting ||
-                          (importType === 'github' && (!analysisResult || selectedSkillPaths.size === 0)) ||
-                          (importType === 'local' && !importPath)
-                        }
-                      >
-                        {isImporting ? <span className="loading loading-spinner loading-xs" /> : t('import')}
-                      </button>
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="px-6 h-10 rounded-xl font-medium text-sm border-none shadow-lg
+                          bg-gradient-to-r from-blue-600 to-indigo-600 text-white
+                          shadow-blue-500/25 hover:shadow-blue-500/40
+                          transition-all duration-300 min-w-[100px]"
+                         onClick={handleImport}
+                         disabled={
+                           !!isImporting ||
+                           (importType === 'github' && !!analysisResult && (analysisResult.skills.length === 0 || selectedSkillPaths.size === 0))
+                         }
+                       >
+                        {isImporting ? <span className="loading loading-spinner loading-xs mr-2" /> : null}
+                        {isImporting ? t('importing') : t('import')}
+                      </motion.button>
                     </div>
                   </div>
                 )}

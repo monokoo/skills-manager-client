@@ -104,11 +104,11 @@ const Security = () => {
           onClick={handleScan}
           disabled={scanning}
           className={`
-            flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium
-            transition-all duration-150
+            flex items-center gap-2 px-5 h-11 rounded-xl text-sm font-semibold
+            transition-all duration-200 shadow-sm
             ${scanning
-              ? 'bg-gray-200 dark:bg-white/10 text-gray-400 cursor-not-allowed'
-              : 'bg-blue-500 hover:bg-blue-600 text-white shadow-sm'
+              ? 'bg-black/5 dark:bg-white/10 text-gray-400 cursor-not-allowed border border-gray-200/60 dark:border-white/10'
+              : 'bg-blue-500 hover:bg-blue-600 text-white hover:shadow-lg hover:shadow-blue-500/25 border-none'
             }
           `}
         >

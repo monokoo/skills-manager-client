@@ -316,22 +316,22 @@ const Settings = () => {
             </div>
             <div className="flex items-center gap-2 mt-4">
               <button
-                className="btn btn-sm btn-primary gap-2"
+                className="btn h-10 px-4 bg-primary text-white border-0 rounded-xl shadow-lg shadow-primary/25 font-semibold text-sm hover:bg-primary/90 transition-all duration-200 gap-2"
                 onClick={handleCreateAllSymlinks}
                 disabled={isCreatingSymlinks}
               >
                 {isCreatingSymlinks ? (
                   <span className="loading loading-spinner loading-xs" />
                 ) : (
-                  <Link2 size={14} />
+                  <Link2 size={16} />
                 )}
                 {t('setupAll')}
               </button>
               <button
-                className="btn btn-sm btn-ghost gap-2"
+                className="btn h-10 px-4 rounded-xl border border-gray-200/60 dark:border-white/10 bg-black/5 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-black/10 dark:hover:bg-white/10 transition-colors gap-2"
                 onClick={() => checkSymlinkStatus()}
               >
-                <RefreshCw size={14} />
+                <RefreshCw size={16} />
                 {t('refresh')}
               </button>
             </div>
@@ -523,17 +523,17 @@ const Settings = () => {
                 <input
                   type="text"
                   placeholder={t('enterProjectPath')}
-                  className="input input-sm bg-base-100 border-base-300 flex-1 rounded-lg text-sm"
+                  className="input h-10 px-4 bg-black/5 dark:bg-white/5 border-gray-200/60 dark:border-white/10 flex-1 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/40 transition-all duration-300 shadow-inner"
                   value={newPath}
                   onChange={(e) => setNewPath(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleAddPath()}
                 />
                 <button
-                  className="btn btn-sm btn-primary gap-1"
+                  className="btn h-10 px-4 btn-primary border-0 rounded-xl shadow-sm text-sm font-semibold gap-1.5"
                   onClick={handleAddPath}
                   disabled={!newPath.trim()}
                 >
-                  <Plus size={14} />
+                  <Plus size={16} />
                   {t('add')}
                 </button>
               </div>
