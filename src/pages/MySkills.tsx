@@ -1278,6 +1278,9 @@ const MySkills = () => {
                             setImportUrl('');
                             setImportPath('');
                           }
+                          setAnalysisError(null);
+                          setFormError(null);
+                          setSelectedSkillPaths(new Set());
                         }}
                       >
                         {t('cancel')}

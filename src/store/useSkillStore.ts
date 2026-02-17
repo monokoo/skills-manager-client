@@ -474,7 +474,7 @@ export const useSkillStore = create<SkillStore>()(
               const result: AnalyzeResult = await invoke('analyze_github_repo', {
                   request: { repoUrl: url }
               });
-              set({ isAnalyzing: false, analysisResult: result });
+              set({ isAnalyzing: false, analysisResult: result.success ? result : null });
               return result;
           } catch (error: any) {
               set({ isAnalyzing: false });
@@ -488,7 +488,7 @@ export const useSkillStore = create<SkillStore>()(
               const result: AnalyzeResult = await invoke('analyze_local_folder', {
                   request: { sourcePath: path }
               });
-              set({ isAnalyzing: false, analysisResult: result });
+              set({ isAnalyzing: false, analysisResult: result.success ? result : null });
               return result;
           } catch (error: any) {
               set({ isAnalyzing: false });
