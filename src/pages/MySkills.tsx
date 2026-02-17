@@ -99,39 +99,9 @@ const MySkills = () => {
     if (isDeleting) return;
 
     const paths = skill.localPaths || [skill.localPath];
-    
-    if (paths.length <= 1) {
-      // Single path: simple confirm
-      if (!window.confirm(t('confirmDeleteSingle', { name: skill.name }))) return;
-      
-      setIsDeleting(true);
-      try {
-        const result = await invoke<CommandResult>('uninstall_skill', {
-          request: { skillPaths: paths }
-        });
-
-        if (result.success) {
-          showToast(true, `${skill.name} ${t('deleteSuccess')}`);
-          setSelectedIds(prev => {
-            const next = new Set(prev);
-            next.delete(skill.id);
-            return next;
-          });
-          await scanLocalSkills();
-        } else {
-          showToast(false, `${t('deleteError')}: ${result.message}`);
-        }
-      } catch (error) {
-        const errMsg = error instanceof Error ? error.message : String(error);
-        showToast(false, `${t('deleteError')}: ${errMsg}`);
-      } finally {
-        setIsDeleting(false);
-      }
-    } else {
-      // Multiple paths: show delete modal
-      setDeleteTarget(skill);
-      setSelectedDeletePaths(new Set(paths));
-    }
+    // Unified: always show custom confirm modal
+    setDeleteTarget(skill);
+    setSelectedDeletePaths(new Set(paths));
   };
 
   const handleConfirmDelete = async () => {
