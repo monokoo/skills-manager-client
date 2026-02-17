@@ -544,45 +544,94 @@ const MySkills = () => {
           )}
         </div>
 
-        {/* Batch Actions */}
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-base-content/60">
-              {t('selectedCount', { count: selectedIds.size })}
-            </span>
-            <button
-              className="btn btn-sm btn-primary gap-2 rounded-xl h-9"
-              onClick={handleBatchUpdate}
-              disabled={isUpdating || updatableSelected.length === 0}
-            >
-              {isUpdating ? (
-                <span className="loading loading-spinner loading-xs" />
-              ) : (
-                <Download size={14} />
-              )}
-              {t('batchUpdate')}
-              {updatableSelected.length > 0 && ` (${updatableSelected.length})`}
-            </button>
-            <button
-              className="btn btn-sm btn-error btn-outline gap-2 rounded-xl h-9"
-              onClick={handleBatchDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting ? (
-                <span className="loading loading-spinner loading-xs" />
-              ) : (
-                <Trash2 size={14} />
-              )}
-              {t('batchDelete')}
-            </button>
-            <button
-              className="btn btn-sm btn-ghost rounded-xl h-9"
-              onClick={() => setSelectedIds(new Set())}
-            >
-              {t('cancel')}
-            </button>
-          </div>
-        )}
+          {/* Batch Actions */}
+          <AnimatePresence>
+            {selectedIds.size > 0 && (
+              <motion.div
+                initial={{ opacity: 0, x: 20, scale: 0.95 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: 10, scale: 0.95 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="flex items-center bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-lg px-2 py-1.5 md:px-3 gap-2 md:gap-3"
+              >
+                {/* Count Badge */}
+                <div className="flex items-center gap-2 pl-1">
+                  <div className="flex items-center justify-center bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold px-2 py-0.5 rounded-lg text-sm min-w-[24px]">
+                    {selectedIds.size}
+                  </div>
+                  <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-medium hidden sm:inline whitespace-nowrap">
+                    {t('selected')}
+                  </span>
+                </div>
+
+                {/* Divider */}
+                <div className="h-5 w-px bg-gray-200 dark:bg-white/10 mx-1 hidden sm:block" />
+
+                {/* Select All / Deselect All */}
+                <div className="flex items-center gap-1">
+                 <button
+                    className="p-1.5 md:px-2 md:py-1.5 rounded-lg text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 transition-colors whitespace-nowrap"
+                    onClick={() => {
+                      if (selectedIds.size === filteredSkills.length) {
+                        setSelectedIds(new Set());
+                      } else {
+                        setSelectedIds(new Set(filteredSkills.map(s => s.id)));
+                      }
+                    }}
+                  >
+                    {selectedIds.size === filteredSkills.length ? t('deselectAll') : t('selectAllSkills')}
+                  </button>
+                </div>
+
+                {/* Divider */}
+                <div className="h-5 w-px bg-gray-200 dark:bg-white/10 mx-1" />
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 transition-all font-medium text-xs md:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={handleBatchUpdate}
+                    disabled={isUpdating || updatableSelected.length === 0}
+                  >
+                    {isUpdating ? (
+                      <span className="loading loading-spinner loading-xs" />
+                    ) : (
+                      <Download size={14} className="md:w-4 md:h-4" />
+                    )}
+                    <span className="hidden md:inline">{t('batchUpdate')}</span>
+                    {updatableSelected.length > 0 && <span className="opacity-80 text-[10px] md:text-xs">({updatableSelected.length})</span>}
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 dark:border-red-500/30 text-red-500 bg-red-50/50 dark:bg-red-500/10 hover:bg-red-100/50 dark:hover:bg-red-500/20 rounded-xl transition-all font-medium text-xs md:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={handleBatchDelete}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? (
+                      <span className="loading loading-spinner loading-xs" />
+                    ) : (
+                      <Trash2 size={14} className="md:w-4 md:h-4" />
+                    )}
+                    <span className="hidden md:inline">{t('batchDelete')}</span>
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.1, rotate: 90 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="p-1.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors ml-1"
+                    onClick={() => setSelectedIds(new Set())}
+                    aria-label={t('cancel')}
+                  >
+                    <X size={16} />
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
       </div>
       </StickyHeader>
 
@@ -661,9 +710,11 @@ const MySkills = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate" title={skill.description}>
-                    {skill.description}
-                  </p>
+                  {skill.description && skill.description.trim() !== '' && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate" title={skill.description}>
+                      {skill.description}
+                    </p>
+                  )}
                   {/* Installation Paths */}
                   {skill.localPaths && skill.localPaths.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
