@@ -541,7 +541,7 @@ const MySkills = () => {
       </div>
 
       {/* Tabs & Search / Batch Actions */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         {/* Left: Tabs */}
         <div role="tablist" className="tabs tabs-boxed bg-black/5 dark:bg-white/5 p-1 rounded-2xl border border-gray-200/60 dark:border-white/10 shrink-0">
           <a
@@ -594,14 +594,14 @@ const MySkills = () => {
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 10, scale: 0.95 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="flex items-center bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-lg px-2 py-1.5 md:px-3 gap-2 md:gap-3"
+              className="flex items-center ml-auto bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-lg px-2 py-1.5 gap-1.5 sm:gap-2 md:px-3 md:gap-3"
             >
               {/* Count Badge */}
-              <div className="flex items-center gap-2 pl-1">
-                <div className="flex items-center justify-center bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold px-2 py-0.5 rounded-lg text-sm min-w-[24px]">
+              <div className="flex items-center gap-1.5 pl-1">
+                <div className="flex items-center justify-center bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold px-1.5 py-0.5 rounded-lg text-xs sm:text-sm min-w-[20px] sm:min-w-[24px] sm:px-2">
                   {selectedIds.size}
                 </div>
-                <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-medium hidden sm:inline whitespace-nowrap">
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium hidden md:inline whitespace-nowrap">
                   {t('selected')}
                 </span>
               </div>
@@ -611,6 +611,7 @@ const MySkills = () => {
 
               {/* Select All / Deselect All */}
               <button
+                title={selectedIds.size === filteredSkills.length ? t('deselectAll') : t('selectAllSkills')}
                 className="p-1.5 md:px-2 md:py-1.5 rounded-lg text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 transition-colors whitespace-nowrap"
                 onClick={() => {
                   if (selectedIds.size === filteredSkills.length) {
@@ -673,6 +674,7 @@ const MySkills = () => {
           ) : (
             <motion.div
               key="search-box"
+              className="ml-auto"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
