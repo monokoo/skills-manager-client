@@ -5,7 +5,8 @@ import { useSkillStore } from '../store/useSkillStore';
 import { 
   Trash2, Eye, FolderOpen, X, Github, HardDrive, Plus, ExternalLink, 
   RefreshCw, AlertCircle, CheckCircle, Package, Calendar, Download, 
-  CheckSquare, Square, ArrowUpDown, ArrowUp, ArrowDown
+  CheckSquare, Square, ArrowUpDown, ArrowUp, ArrowDown,
+  BookOpen, CheckCircle2
 } from 'lucide-react';
 import { SearchBox } from '../components/ui/SearchBox';
 import { StickyHeader } from '../components/ui/StickyHeader';
@@ -994,11 +995,10 @@ const MySkills = () => {
                               {t('repositoryUrl')}
                             </span>
                           </label>
-                          <div className="flex gap-2">
                             <input
                               type="text"
                               placeholder="https://github.com/username/skill-name"
-                              className={`input flex-1 h-12 pl-4 pr-4 bg-black/5 dark:bg-white/5 
+                              className={`input w-full h-12 pl-4 pr-4 bg-black/5 dark:bg-white/5 
                                 border-gray-200/60 dark:border-white/10 rounded-2xl 
                                 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/40 
                                 transition-all duration-300 font-mono text-xs shadow-inner
@@ -1009,28 +1009,16 @@ const MySkills = () => {
                                 setImportUrl(e.target.value);
                                 if (analysisResult) clearAnalysisResult();
                                 if (formError) setFormError(null);
+                                if (analysisError) setAnalysisError(null);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && importUrl.trim()) {
+                                  handleAnalyze();
+                                }
                               }}
                               autoFocus
                             />
-                            <motion.button
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              className={`h-12 min-w-[100px] px-4 rounded-2xl border border-white/20 dark:border-white/10 
-                                bg-white/10 dark:bg-white/5 backdrop-blur-md font-medium text-sm
-                                hover:bg-blue-500 hover:border-blue-400 hover:text-white
-                                transition-all duration-200 flex items-center justify-center gap-2 shadow-sm
-                                ${isAnalyzing ? 'cursor-not-allowed opacity-50' : ''}`}
-                              onClick={handleAnalyze}
-                              disabled={!importUrl || isAnalyzing || isImporting}
-                            >
-                              {isAnalyzing ? (
-                                <span className="loading loading-spinner loading-xs" />
-                              ) : (
-                                <RefreshCw size={14} />
-                              )}
-                              {isAnalyzing ? t('analyzing') : t('analyze')}
-                            </motion.button>
-                          </div>
+
 
                           <div className="mt-2 h-6 flex items-center px-1 overflow-hidden">
                             <AnimatePresence mode="wait">
@@ -1095,39 +1083,64 @@ const MySkills = () => {
                                   {t('nFound', { count: analysisResult.skills.length })}
                                 </span>
                               </div>
-                              <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                                {analysisResult.skills.map((skill) => (
-                                  <div
+                              <div className="max-h-[300px] overflow-y-auto space-y-2 pr-1 custom-scrollbar p-1">
+                                {analysisResult.skills.length === 0 ? (
+                                  <div className="text-center py-8 text-gray-400 text-sm">
+                                    未在仓库中发现 Skill
+                                  </div>
+                                ) : analysisResult.skills.map((skill, index) => (
+                                  <motion.div
                                     key={skill.path}
-                                    className={`flex items-start gap-3 p-3 rounded-2xl cursor-pointer transition-all border group
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.05 }}
+                                    className={`relative flex items-start gap-4 p-4 rounded-2xl cursor-pointer transition-all border group overflow-hidden
                                       ${selectedSkillPaths.has(skill.path)
-                                        ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20'
-                                        : 'bg-white/50 dark:bg-white/5 border-transparent hover:bg-white/80 dark:hover:bg-white/10'}`}
+                                        ? 'bg-blue-50/80 dark:bg-blue-500/10 border-blue-200/50 dark:border-blue-500/20 shadow-sm ring-1 ring-blue-500/10'
+                                        : 'bg-white/40 dark:bg-white/5 border-transparent hover:bg-white/60 dark:hover:bg-white/10 hover:shadow-sm'}`}
                                     onClick={() => toggleSelectSkill(skill.path)}
                                   >
-                                    <div className="mt-0.5 shrink-0 text-gray-400 group-hover:text-blue-500 transition-colors">
-                                      {selectedSkillPaths.has(skill.path) ? (
-                                        <CheckSquare size={18} className="text-blue-500" />
-                                      ) : (
-                                        <Square size={18} />
-                                      )}
+                                    {/* Selection Indicator Bar */}
+                                    {selectedSkillPaths.has(skill.path) && (
+                                      <motion.div 
+                                        layoutId="selection-bar"
+                                        className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"
+                                      />
+                                    )}
+
+                                    {/* Icon */}
+                                    <div className={`mt-1 shrink-0 p-2 rounded-xl transition-colors
+                                      ${selectedSkillPaths.has(skill.path) 
+                                        ? 'bg-blue-500 text-white shadow-blue-500/20 shadow-lg' 
+                                        : 'bg-black/5 dark:bg-white/10 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300'}`}>
+                                      <BookOpen size={18} strokeWidth={2.5} />
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <span className={`font-semibold text-sm ${selectedSkillPaths.has(skill.path) ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
+
+                                    <div className="flex-1 min-w-0 space-y-1.5">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className={`font-bold text-sm tracking-tight ${selectedSkillPaths.has(skill.path) ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
                                           {skill.name}
                                         </span>
-                                        <span className="text-[9px] text-gray-400 font-mono bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded truncate max-w-[40%]">
-                                          {skill.path}
-                                        </span>
+                                        {selectedSkillPaths.has(skill.path) && (
+                                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                                            <CheckCircle2 size={16} className="text-blue-500" />
+                                          </motion.div>
+                                        )}
                                       </div>
-                                      {skill.description && (
-                                        <div className="text-xs mt-1 text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                                      
+                                      {skill.description && skill.description.trim() !== '' && (
+                                        <div className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
                                           {skill.description}
                                         </div>
                                       )}
+
+                                      <div className="pt-1">
+                                        <span className="text-[10px] text-gray-400 font-mono bg-black/5 dark:bg-white/5 px-2 py-1 rounded-md truncate max-w-full inline-block">
+                                          {skill.path}
+                                        </span>
+                                      </div>
                                     </div>
-                                  </div>
+                                  </motion.div>
                                 ))}
                               </div>
                             </motion.div>
@@ -1259,18 +1272,28 @@ const MySkills = () => {
                           bg-gradient-to-r from-blue-600 to-indigo-600 text-white
                           shadow-blue-500/25 hover:shadow-blue-500/40
                           transition-all duration-300 min-w-[100px]"
-                         onClick={handleImport}
+                         onClick={() => {
+                           if (!analysisResult && !isImporting) {
+                             handleAnalyze();
+                           } else {
+                             handleImport();
+                           }
+                         }}
                          disabled={
+                           (importType === 'local' && !!isAnalyzing) || // Local analyze handled by separate button for now (TODO: unify?)
+                           (importType === 'github' && isAnalyzing) ||
                            !!isImporting ||
                            (!!analysisResult && (analysisResult.skills.length === 0 || selectedSkillPaths.size === 0))
                          }
                        >
-                        {isImporting ? <span className="loading loading-spinner loading-xs mr-2" /> : null}
+                        {isImporting || isAnalyzing ? <span className="loading loading-spinner loading-xs mr-2" /> : null}
                         {isImporting
                           ? t('importing')
-                          : analysisResult
-                            ? t('import')
-                            : t('analyze')}
+                          : isAnalyzing
+                            ? t('analyzing')
+                            : analysisResult
+                              ? t('import')
+                              : t('analyze')}
                       </motion.button>
                     </div>
                   </div>

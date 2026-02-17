@@ -430,9 +430,22 @@ fn parse_skill_md(path: &PathBuf, skill_type: &str) -> Option<SkillInfo> {
 
     // 如果没有 frontmatter，使用旧方法提取描述
     let description = frontmatter_desc.unwrap_or_else(|| {
-        content
-            .lines()
-            .skip_while(|l| l.starts_with('#') || l.starts_with("---") || l.trim().is_empty())
+        let mut lines = content.lines();
+        
+        // 如果以 --- 开头，跳过整个 frontmatter 块
+        if content.starts_with("---") {
+            // 跳过第一个 ---
+            lines.next(); 
+            // 跳过直到下一个 ---
+            for line in &mut lines {
+                if line.trim() == "---" {
+                    break;
+                }
+            }
+        }
+
+        lines
+            .skip_while(|l| l.starts_with('#') || l.trim().is_empty())
             .take_while(|l| !l.trim().is_empty() && !l.starts_with('#'))
             .collect::<Vec<_>>()
             .join(" ")
