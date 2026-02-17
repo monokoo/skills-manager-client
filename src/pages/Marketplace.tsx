@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSkillStore } from '../store/useSkillStore';
-import { Download, Star, ExternalLink, Check, Loader2, Shield, ShieldCheck, ShieldAlert, X, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles } from 'lucide-react';
+import { Download, Star, ExternalLink, Check, Loader2, Shield, ShieldCheck, ShieldAlert, X, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Package } from 'lucide-react';
 import { SearchBox } from '../components/ui/SearchBox';
 import { StickyHeader } from '../components/ui/StickyHeader';
+import { InstallLevelPicker, type InstallLevel } from '../components/ui/InstallLevelPicker';
 import { getLocalizedDescription } from '../utils/i18n';
 import { invoke } from '@tauri-apps/api/core';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -99,7 +100,11 @@ const Marketplace = () => {
     fetchMarketplaceSkills,
     installSkill,
     installedSkills,
-    isLoading
+    isLoading,
+    defaultInstallLocation,
+    projectPaths,
+    selectedProjectIndex,
+    setSelectedProjectIndex
   } = useSkillStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
@@ -107,6 +112,11 @@ const Marketplace = () => {
   const [isBatchInstalling, setIsBatchInstalling] = useState(false);
   const [batchMode, setBatchMode] = useState(false);
   const [batchSelectedSkills, setBatchSelectedSkills] = useState<string[]>([]);
+  // Install confirm modal state
+  const [installTarget, setInstallTarget] = useState<any>(null);
+  const [installLevel, setInstallLevel] = useState<InstallLevel>(defaultInstallLocation as InstallLevel || 'system');
+  // Batch install confirm
+  const [showBatchConfirm, setShowBatchConfirm] = useState(false);
   const [installStatus, setInstallStatus] = useState<InstallStatus>({
     show: false,
     phase: 'idle',
@@ -148,8 +158,15 @@ const Marketplace = () => {
     return messages[phase];
   };
 
-  const handleInstall = async (skill: any) => {
+  const openInstallConfirm = (skill: any) => {
     if (installingSkillId) return;
+    setInstallTarget(skill);
+    setInstallLevel(defaultInstallLocation as InstallLevel || 'system');
+  };
+
+  const handleInstall = async (skill: any, overridePath?: string) => {
+    if (installingSkillId) return;
+    setInstallTarget(null);
 
     setInstallingSkillId(skill.id);
 
@@ -169,7 +186,7 @@ const Marketplace = () => {
         }));
       }, 500);
 
-      const result = await installSkill(skill);
+      const result = await installSkill(skill, overridePath);
 
       setInstallStatus(prev => ({
         ...prev,
@@ -227,8 +244,9 @@ const Marketplace = () => {
     }
   };
 
-  const handleBatchInstall = async () => {
+  const handleBatchInstall = async (overridePath?: string) => {
     if (batchSelectedSkills.length === 0 || isBatchInstalling) return;
+    setShowBatchConfirm(false);
 
     const skillsToInstall = marketplaceSkills.filter(s => batchSelectedSkills.includes(s.id));
     if (skillsToInstall.length === 0) return;
@@ -247,7 +265,7 @@ const Marketplace = () => {
     try {
       for (const skill of skillsToInstall) {
         try {
-          await installSkill(skill);
+          await installSkill(skill, overridePath);
           successCount++;
         } catch (e) {
           failCount++;
@@ -475,7 +493,10 @@ const Marketplace = () => {
         {batchMode && (
           <BatchActionBar
             selectedCount={batchSelectedSkills.length}
-            onInstall={handleBatchInstall}
+            onInstall={() => {
+              setInstallLevel(defaultInstallLocation as InstallLevel || 'system');
+              setShowBatchConfirm(true);
+            }}
             onSelectAll={() => {
               const uninstalledIdsInCurrentPage = currentSkills
                 .filter(s => !isInstalled(s.id))
@@ -599,7 +620,7 @@ const Marketplace = () => {
                           className="h-10 px-5 flex items-center gap-2 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-bold text-white shadow-md hover:shadow-lg transition-all"
                           onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();
-                            handleInstall(skill);
+                            openInstallConfirm(skill);
                           }}
                           disabled={!!installingSkillId}
                         >
@@ -694,6 +715,172 @@ const Marketplace = () => {
           )}
         </>
       )}
+      {/* Install Confirm Modal */}
+      <AnimatePresence>
+        {installTarget && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm" 
+              onClick={() => setInstallTarget(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-md bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200/50 dark:border-white/10 overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 pt-5 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-500/10">
+                    <Package size={20} className="text-blue-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                      {t('confirmInstall')}
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      {installTarget.name}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setInstallTarget(null)}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                >
+                  <X size={16} className="text-gray-400" />
+                </button>
+              </div>
+
+              {/* Skill Info */}
+              {installTarget.description && (
+                <div className="px-6 pb-2">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+                    {getLocalizedDescription(installTarget, i18n.language)}
+                  </p>
+                </div>
+              )}
+
+              {/* Install Level Picker */}
+              <div className="px-6 py-3">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  {t('installLevelTitle')}
+                </p>
+                <InstallLevelPicker
+                  value={installLevel}
+                  onChange={setInstallLevel}
+                  projectPaths={projectPaths}
+                  selectedProjectIndex={selectedProjectIndex}
+                  onProjectIndexChange={setSelectedProjectIndex}
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2 px-6 pb-5">
+                <button
+                  onClick={() => setInstallTarget(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  onClick={() => {
+                    const overridePath = installLevel === 'project' && projectPaths.length > 0
+                      ? (projectPaths[selectedProjectIndex] || projectPaths[0])
+                      : undefined;
+                    handleInstall(installTarget, overridePath);
+                  }}
+                  className="px-5 py-2 text-sm font-bold text-white bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all flex items-center gap-2"
+                >
+                  <Download size={14} />
+                  {t('confirmInstall')}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Batch Install Confirm Modal */}
+      <AnimatePresence>
+        {showBatchConfirm && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm" 
+              onClick={() => setShowBatchConfirm(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-md bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200/50 dark:border-white/10 overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 pt-5 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-500/10">
+                    <Package size={20} className="text-blue-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                      {t('confirmInstall')}
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      {t('installingCount', { count: batchSelectedSkills.length })}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowBatchConfirm(false)}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                >
+                  <X size={16} className="text-gray-400" />
+                </button>
+              </div>
+
+              {/* Install Level Picker */}
+              <div className="px-6 py-3">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  {t('installLevelTitle')}
+                </p>
+                <InstallLevelPicker
+                  value={installLevel}
+                  onChange={setInstallLevel}
+                  projectPaths={projectPaths}
+                  selectedProjectIndex={selectedProjectIndex}
+                  onProjectIndexChange={setSelectedProjectIndex}
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2 px-6 pb-5">
+                <button
+                  onClick={() => setShowBatchConfirm(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  onClick={() => {
+                    const overridePath = installLevel === 'project' && projectPaths.length > 0
+                      ? (projectPaths[selectedProjectIndex] || projectPaths[0])
+                      : undefined;
+                    handleBatchInstall(overridePath);
+                  }}
+                  className="px-5 py-2 text-sm font-bold text-white bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all flex items-center gap-2"
+                >
+                  <Download size={14} />
+                  {t('installToProject', { count: batchSelectedSkills.length })}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

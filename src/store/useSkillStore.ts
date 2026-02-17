@@ -92,7 +92,7 @@ interface SkillStore {
   // Actions
   fetchMarketplaceSkills: () => Promise<void>;
   scanLocalSkills: () => Promise<void>;
-  installSkill: (skill: MarketplaceSkill) => Promise<InstallResult>;
+  installSkill: (skill: MarketplaceSkill, overrideInstallPath?: string) => Promise<InstallResult>;
   uninstallSkill: (id: string) => void;
   updateSkill: (id: string, skill: Partial<InstalledSkill>) => void;
   importFromGithub: (url: string, installPath?: string) => Promise<InstallResult>;
@@ -102,7 +102,7 @@ interface SkillStore {
   analyzeGithubRepo: (url: string) => Promise<AnalyzeResult>;
   analyzeLocalFolder: (path: string) => Promise<AnalyzeResult>;
   clearAnalysisResult: () => void;
-  importSelectedSkills: (tempPath: string, selectedPaths: string[], repoUrl: string) => Promise<InstallResult>;
+  importSelectedSkills: (tempPath: string, selectedPaths: string[], repoUrl: string, installPath?: string) => Promise<InstallResult>;
 
   fetchProjectPaths: () => Promise<void>;
   saveProjectPaths: (paths: string[]) => Promise<void>;
@@ -307,12 +307,12 @@ export const useSkillStore = create<SkillStore>()(
         }
       },
 
-      installSkill: async (skill: MarketplaceSkill) => {
+      installSkill: async (skill: MarketplaceSkill, overrideInstallPath?: string) => {
         const { defaultInstallLocation, projectPaths, selectedProjectIndex } = get();
 
-        // 确定安装路径 (始终安装到 Claude Code 目录)
-        let installPath = undefined;
-        if (defaultInstallLocation === 'project') {
+        // 确定安装路径: 覆盖参数优先，否则 fallback 到全局配置
+        let installPath = overrideInstallPath;
+        if (!installPath && defaultInstallLocation === 'project') {
           if (projectPaths.length > 0) {
             installPath = projectPaths[selectedProjectIndex] || projectPaths[0];
           } else {
@@ -497,10 +497,10 @@ export const useSkillStore = create<SkillStore>()(
           }
       },
       
-      importSelectedSkills: async (tempPath: string, selectedPaths: string[], repoUrl: string) => {
+      importSelectedSkills: async (tempPath: string, selectedPaths: string[], repoUrl: string, installPath?: string) => {
           try {
               const result: any = await invoke('import_selected_skills', {
-                  request: { tempPath, selectedPaths, repoUrl }
+                  request: { tempPath, selectedPaths, repoUrl, installPath }
               });
               
               if (!result.success) {

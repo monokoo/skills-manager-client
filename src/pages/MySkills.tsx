@@ -6,10 +6,11 @@ import {
   Trash2, Eye, FolderOpen, X, Github, HardDrive, Plus, ExternalLink, 
   RefreshCw, AlertCircle, CheckCircle, Package, Calendar, Download, 
   CheckSquare, Square, ArrowUpDown, ArrowUp, ArrowDown,
-  BookOpen, CheckCircle2
+  BookOpen, CheckCircle2, AlertTriangle, Shield
 } from 'lucide-react';
 import { SearchBox } from '../components/ui/SearchBox';
 import { StickyHeader } from '../components/ui/StickyHeader';
+import { InstallLevelPicker, type InstallLevel } from '../components/ui/InstallLevelPicker';
 import type { InstalledSkill } from '../types';
 import { invoke } from '@tauri-apps/api/core';
 // Using dynamic import for @tauri-apps/plugin-dialog to ensure browser compatibility
@@ -34,7 +35,11 @@ const MySkills = () => {
     isAnalyzing,
     analysisResult,
     clearAnalysisResult,
-    importSelectedSkills
+    importSelectedSkills,
+    defaultInstallLocation,
+    projectPaths,
+    selectedProjectIndex,
+    setSelectedProjectIndex
   } = useSkillStore();
   const [activeTab, setActiveTab] = useState<'all' | 'system' | 'project'>('all');
   const [selectedSkill, setSelectedSkill] = useState<InstalledSkill | null>(null);
@@ -45,9 +50,13 @@ const MySkills = () => {
   const [importUrl, setImportUrl] = useState('');
   const [importPath, setImportPath] = useState('');
   const [isImporting, setIsImporting] = useState(false);
+  const [importLevel, setImportLevel] = useState<InstallLevel>(defaultInstallLocation as InstallLevel || 'system');
   const [selectedSkillPaths, setSelectedSkillPaths] = useState<Set<string>>(new Set());
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  // Delete paths modal state
+  const [deleteTarget, setDeleteTarget] = useState<InstalledSkill | null>(null);
+  const [selectedDeletePaths, setSelectedDeletePaths] = useState<Set<string>>(new Set());
   const [toastMessage, setToastMessage] = useState<{show: boolean, success: boolean, message: string}>({show: false, success: false, message: ''});
   const [formError, setFormError] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -89,19 +98,56 @@ const MySkills = () => {
   const handleUninstall = async (skill: InstalledSkill) => {
     if (isDeleting) return;
 
+    const paths = skill.localPaths || [skill.localPath];
+    
+    if (paths.length <= 1) {
+      // Single path: simple confirm
+      if (!window.confirm(t('confirmDeleteSingle', { name: skill.name }))) return;
+      
+      setIsDeleting(true);
+      try {
+        const result = await invoke<CommandResult>('uninstall_skill', {
+          request: { skillPaths: paths }
+        });
+
+        if (result.success) {
+          showToast(true, `${skill.name} ${t('deleteSuccess')}`);
+          setSelectedIds(prev => {
+            const next = new Set(prev);
+            next.delete(skill.id);
+            return next;
+          });
+          await scanLocalSkills();
+        } else {
+          showToast(false, `${t('deleteError')}: ${result.message}`);
+        }
+      } catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        showToast(false, `${t('deleteError')}: ${errMsg}`);
+      } finally {
+        setIsDeleting(false);
+      }
+    } else {
+      // Multiple paths: show delete modal
+      setDeleteTarget(skill);
+      setSelectedDeletePaths(new Set(paths));
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget || selectedDeletePaths.size === 0) return;
+
     setIsDeleting(true);
     try {
       const result = await invoke<CommandResult>('uninstall_skill', {
-        request: {
-          skillPaths: skill.localPaths || [skill.localPath]
-        }
+        request: { skillPaths: Array.from(selectedDeletePaths) }
       });
 
       if (result.success) {
-        showToast(true, `${skill.name} ${t('deleteSuccess')}`);
+        showToast(true, `${deleteTarget.name} ${t('deleteSuccess')}`);
         setSelectedIds(prev => {
           const next = new Set(prev);
-          next.delete(skill.id);
+          next.delete(deleteTarget.id);
           return next;
         });
         await scanLocalSkills();
@@ -113,6 +159,8 @@ const MySkills = () => {
       showToast(false, `${t('deleteError')}: ${errMsg}`);
     } finally {
       setIsDeleting(false);
+      setDeleteTarget(null);
+      setSelectedDeletePaths(new Set());
     }
   };
 
@@ -295,10 +343,15 @@ const MySkills = () => {
             }
           }
 
+          const importInstallPath = importLevel === 'project' && projectPaths.length > 0
+            ? (projectPaths[selectedProjectIndex] || projectPaths[0])
+            : undefined;
+
           const result = await importSelectedSkills(
               importPath, 
               Array.from(selectedSkillPaths),
-              '' 
+              '',
+              importInstallPath
           );
 
           if (result.success) {
@@ -336,10 +389,15 @@ const MySkills = () => {
           }
         }
 
+        const importInstallPath = importLevel === 'project' && projectPaths.length > 0
+          ? (projectPaths[selectedProjectIndex] || projectPaths[0])
+          : undefined;
+
         const result = await importSelectedSkills(
             analysisResult.tempPath,
             Array.from(selectedSkillPaths),
-            importUrl
+            importUrl,
+            importInstallPath
         );
 
         if (result.success) {
@@ -1339,6 +1397,22 @@ const MySkills = () => {
                       </motion.div>
                     )}
 
+                    {/* Install Level Picker */}
+                    {analysisResult && analysisResult.skills.length > 0 && (
+                      <div className="pt-2">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                          {t('installLevelTitle')}
+                        </p>
+                        <InstallLevelPicker
+                          value={importLevel}
+                          onChange={setImportLevel}
+                          projectPaths={projectPaths}
+                          selectedProjectIndex={selectedProjectIndex}
+                          onProjectIndexChange={setSelectedProjectIndex}
+                        />
+                      </div>
+                    )}
+
                     {/* Footer Actions */}
                     <div className="flex justify-end gap-3 pt-2">
                       <button
@@ -1403,6 +1477,121 @@ const MySkills = () => {
                     </div>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Paths Modal */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm" 
+              onClick={() => { setDeleteTarget(null); setSelectedDeletePaths(new Set()); }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-md bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200/50 dark:border-white/10 overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 pt-5 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-red-50 dark:bg-red-500/10">
+                    <AlertTriangle size={20} className="text-red-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                      {t('deleteTitle')}
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      {deleteTarget.name}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => { setDeleteTarget(null); setSelectedDeletePaths(new Set()); }}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                >
+                  <X size={16} className="text-gray-400" />
+                </button>
+              </div>
+
+              {/* Path Selection */}
+              <div className="px-6 py-3">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                  {t('selectPathsToDelete')}
+                </p>
+                <div className="space-y-2">
+                  {(deleteTarget.localPaths || [deleteTarget.localPath]).map((p, i) => (
+                    <label
+                      key={i}
+                      className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all
+                        ${selectedDeletePaths.has(p)
+                          ? 'bg-red-50/60 dark:bg-red-500/5 border-red-200 dark:border-red-500/20'
+                          : 'bg-gray-50/50 dark:bg-white/5 border-gray-200/50 dark:border-white/10 hover:bg-gray-100/60 dark:hover:bg-white/8'
+                        }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedDeletePaths.has(p)}
+                        onChange={() => {
+                          setSelectedDeletePaths(prev => {
+                            const next = new Set(prev);
+                            if (next.has(p)) next.delete(p);
+                            else next.add(p);
+                            return next;
+                          });
+                        }}
+                        className="checkbox checkbox-sm checkbox-error mt-0.5 shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-mono text-gray-600 dark:text-gray-300 break-all leading-relaxed">
+                          {p.replace(/^\/Users\/[^/]+/, '~')}
+                        </span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Danger Warning */}
+              <div className="mx-6 mb-4 p-3 rounded-xl bg-red-50/80 dark:bg-red-500/5 border border-red-200/50 dark:border-red-500/15">
+                <div className="flex items-start gap-2">
+                  <Shield size={14} className="text-red-500 mt-0.5 shrink-0" />
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-red-600 dark:text-red-400">
+                      {t('dangerZone')}
+                    </span>
+                    <p className="text-xs text-red-500/80 dark:text-red-400/70 mt-0.5 leading-relaxed">
+                      {t('deleteWarning')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2 px-6 pb-5">
+                <button
+                  onClick={() => { setDeleteTarget(null); setSelectedDeletePaths(new Set()); }}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  disabled={selectedDeletePaths.size === 0 || isDeleting}
+                  className="px-4 py-2 text-sm font-bold text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-colors flex items-center gap-2"
+                >
+                  {isDeleting && <span className="loading loading-spinner loading-xs" />}
+                  <Trash2 size={14} />
+                  {t('confirmDelete', { count: selectedDeletePaths.size })}
+                </button>
               </div>
             </motion.div>
           </div>
