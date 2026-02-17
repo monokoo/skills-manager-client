@@ -494,24 +494,24 @@ const MySkills = () => {
 
       <StickyHeader className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-wrap justify-between items-center gap-3">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl">
+          <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl shrink-0">
             <Package size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('mySkills')}</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{t('mySkills')}</h1>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
               {t('installedCount', { count: installedSkills.length })}
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="flex items-center gap-2 px-4 h-12 rounded-2xl border border-gray-200/60 dark:border-white/10
-              bg-black/5 dark:bg-white/5 text-gray-600 dark:text-gray-300 text-sm font-medium
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 h-10 sm:h-12 rounded-2xl border border-gray-200/60 dark:border-white/10
+              bg-black/5 dark:bg-white/5 text-gray-600 dark:text-gray-300 text-xs sm:text-sm font-medium
               hover:bg-white/80 dark:hover:bg-white/10 hover:border-blue-500/30 transition-all duration-200 shadow-sm"
             onClick={() => checkSkillUpdates()}
             disabled={isCheckingUpdates}
@@ -520,21 +520,21 @@ const MySkills = () => {
               animate={isCheckingUpdates ? { rotate: 360 } : { rotate: 0 }}
               transition={isCheckingUpdates ? { duration: 1, repeat: Infinity, ease: "linear" } : { duration: 0.5 }}
             >
-              <RefreshCw size={16} className={isCheckingUpdates ? 'text-blue-500' : ''} />
+              <RefreshCw size={14} className={`sm:w-4 sm:h-4 ${isCheckingUpdates ? 'text-blue-500' : ''}`} />
             </motion.div>
-            {t('checkUpdates')}
+            <span className="hidden sm:inline">{t('checkUpdates')}</span>
           </motion.button>
 
           <motion.button
             whileHover={{ scale: 1.02, boxShadow: "0 10px 25px -5px rgba(59, 130, 246, 0.4)" }}
             whileTap={{ scale: 0.98 }}
-            className="flex items-center gap-2 px-6 h-12 rounded-2xl font-semibold text-sm text-white border-none shadow-lg
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 h-10 sm:h-12 rounded-2xl font-semibold text-xs sm:text-sm text-white border-none shadow-lg
               bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-700
               transition-all duration-300 relative overflow-hidden group whitespace-nowrap"
             onClick={() => setShowImportModal(true)}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-shimmer z-0" />
-            <Plus size={18} className="relative z-10" />
+            <Plus size={16} className="relative z-10 sm:w-[18px] sm:h-[18px]" />
             <span className="relative z-10">{t('importSkill')}</span>
           </motion.button>
         </div>
@@ -696,9 +696,9 @@ const MySkills = () => {
       {/* Skills List Area - Added min-height to prevent layout jump */}
       <div className="min-h-[400px] pt-4">
         {filteredSkills.length > 0 ? (
-          <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-200/60 dark:border-white/10 overflow-hidden shadow-sm">
+          <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-200/60 dark:border-white/10 shadow-sm overflow-x-auto">
           {/* List Header */}
-          <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-white/5 border-b border-gray-200/60 dark:border-white/10 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-white/5 border-b border-gray-200/60 dark:border-white/10 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[700px]">
             <button
               className="shrink-0"
               onClick={toggleSelectAll}
@@ -710,22 +710,22 @@ const MySkills = () => {
               )}
             </button>
             <button
-              className="flex-1 min-w-0 flex items-center gap-1 cursor-pointer hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+              className="flex-1 min-w-[180px] flex items-center gap-1 cursor-pointer hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
               onClick={() => toggleSort('name')}
             >
               {t('name')}
               <SortIcon field="name" />
             </button>
-            <div className="w-24 text-center hidden sm:block">{t('sourceHeader')}</div>
+            <div className="w-24 text-center shrink-0">{t('sourceHeader')}</div>
             <button
-              className="w-40 text-center hidden md:flex items-center justify-center gap-1 cursor-pointer hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+              className="w-40 text-center shrink-0 flex items-center justify-center gap-1 cursor-pointer hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
               onClick={() => toggleSort('installDate')}
             >
               {t('installedHeader')}
               <SortIcon field="installDate" />
             </button>
-            <div className="w-20 text-center hidden lg:block">{t('statusHeader')}</div>
-            <div className="w-40 text-right">{t('actions')}</div>
+            <div className="w-20 text-center shrink-0">{t('statusHeader')}</div>
+            <div className="w-28 text-right shrink-0 sticky right-0 bg-gray-50 dark:bg-[#1a1a2e] pl-3 shadow-[inset_4px_0_6px_-4px_rgba(0,0,0,0.06)]">{t('actions')}</div>
           </div>
 
           {/* List Items */}
@@ -733,7 +733,7 @@ const MySkills = () => {
             {filteredSkills.map((skill) => (
               <div
                 key={skill.id}
-                className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${
+                className={`group flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors min-w-[700px] ${
                   selectedIds.has(skill.id) ? 'bg-blue-50 dark:bg-blue-500/5' : ''
                 }`}
               >
@@ -750,7 +750,7 @@ const MySkills = () => {
                 </button>
 
                 {/* Name, Description & Paths */}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-[180px]">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold truncate">{skill.name}</span>
                     {skill.version && (
@@ -799,7 +799,7 @@ const MySkills = () => {
                 </div>
 
                 {/* Source - Clickable */}
-                <div className="w-24 hidden sm:flex items-center justify-center">
+                <div className="w-24 shrink-0 flex items-center justify-center">
                   {skill.sourceUrl ? (
                     <button
                       className="flex items-center gap-1 text-xs text-primary hover:underline cursor-pointer"
@@ -819,13 +819,13 @@ const MySkills = () => {
                 </div>
 
                 {/* Install Date */}
-                <div className="w-40 hidden md:flex items-center justify-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                <div className="w-40 shrink-0 flex items-center justify-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                   <Calendar size={12} />
                   <span className="font-mono">{formatDate(skill.installDate)}</span>
                 </div>
 
                 {/* Status */}
-                <div className="w-20 hidden lg:flex justify-center">
+                <div className="w-20 shrink-0 flex justify-center">
                   {skill.status === 'safe' && (
                     <span className="badge badge-success badge-xs gap-0.5">
                       <CheckCircle size={10} />
@@ -841,7 +841,11 @@ const MySkills = () => {
                 </div>
 
                 {/* Actions - Increased spacing */}
-                <div className="w-40 flex items-center justify-end gap-2">
+                <div className={`w-28 shrink-0 flex items-center justify-end gap-1 sticky right-0 pl-3 shadow-[inset_4px_0_6px_-4px_rgba(0,0,0,0.06)] transition-colors ${
+                  selectedIds.has(skill.id)
+                    ? 'bg-blue-50 dark:bg-blue-900/20'
+                    : 'bg-white dark:bg-[#0d0d1a]'
+                } group-hover:bg-gray-50 dark:group-hover:bg-white/5`}>
                   {/* Update button for skills with sourceUrl */}
                   {skill.sourceUrl && (
                     <button
