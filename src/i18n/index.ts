@@ -193,6 +193,8 @@ const resources = {
       overwriteTitle: "Duplicate Skill Detected",
       overwriteDesc: "\"{{name}}\" already exists at the following path. Overwrite?",
       overwriteConfirm: "Overwrite",
+      importOverwriteConfirm: "The following skills already exist and will be overwritten:\n\n{{names}}\n\nContinue?",
+      alreadyInstalled: "Installed",
 
       // Delete Paths Dialog
       deleteTitle: "Delete Skill",
@@ -463,6 +465,8 @@ const resources = {
       overwriteTitle: "检测到同名 Skill",
       overwriteDesc: "\"{{name}}\" 已存在于以下路径，是否覆盖？",
       overwriteConfirm: "覆盖安装",
+      importOverwriteConfirm: "以下 Skill 已存在，导入将覆盖现有版本：\n\n{{names}}\n\n是否继续？",
+      alreadyInstalled: "已安装",
 
       // 安全删除弹窗
       deleteTitle: "删除 Skill",

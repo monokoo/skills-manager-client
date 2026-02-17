@@ -45,6 +45,7 @@ export interface DiscoveredSkill {
   name: string;
   path: string; // Relative path
   description: string;
+  exists: boolean; // Whether a skill with the same name already exists
 }
 
 export interface AnalyzeResult {

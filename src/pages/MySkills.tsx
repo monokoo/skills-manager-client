@@ -283,6 +283,18 @@ const MySkills = () => {
               return;
           }
 
+          // Check for existing skills
+          const existingSkills = analysisResult.skills.filter(
+            s => selectedSkillPaths.has(s.path) && s.exists
+          );
+          if (existingSkills.length > 0) {
+            const names = existingSkills.map(s => `  • ${s.name}`).join('\n');
+            if (!window.confirm(t('importOverwriteConfirm', { names }))) {
+              setIsImporting(false);
+              return;
+            }
+          }
+
           const result = await importSelectedSkills(
               importPath, 
               Array.from(selectedSkillPaths),
@@ -310,6 +322,18 @@ const MySkills = () => {
             setAnalysisError(t('pleaseSelectSkill'));
             setIsImporting(false);
             return;
+        }
+
+        // Check for existing skills
+        const existingSkills = analysisResult.skills.filter(
+          s => selectedSkillPaths.has(s.path) && s.exists
+        );
+        if (existingSkills.length > 0) {
+          const names = existingSkills.map(s => `  • ${s.name}`).join('\n');
+          if (!window.confirm(t('importOverwriteConfirm', { names }))) {
+            setIsImporting(false);
+            return;
+          }
         }
 
         const result = await importSelectedSkills(
@@ -1187,6 +1211,11 @@ const MySkills = () => {
                                         <span className={`font-bold text-sm tracking-tight ${selectedSkillPaths.has(skill.path) ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
                                           {skill.name}
                                         </span>
+                                        {skill.exists && (
+                                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-500/20">
+                                            {t('alreadyInstalled')}
+                                          </span>
+                                        )}
                                         {selectedSkillPaths.has(skill.path) && (
                                           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
                                             <CheckCircle2 size={16} className="text-blue-500" />

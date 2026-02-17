@@ -1255,6 +1255,7 @@ pub struct DiscoveredSkill {
     pub name: String,
     pub path: String, // Relative path in repo
     pub description: String,
+    pub exists: bool, // Whether a skill with the same name already exists
 }
 
 #[derive(Debug, Deserialize)]
@@ -1293,6 +1294,7 @@ async fn analyze_local_folder(request: AnalyzeLocalRequest) -> Result<AnalyzeRes
         }
 
         // Scan for SKILL.md
+        let skills_dir = get_claude_skills_dir();
         let mut discovered_skills = Vec::new();
         for entry in WalkDir::new(&source_path).max_depth(5) {
             if let Ok(entry) = entry {
@@ -1301,11 +1303,13 @@ async fn analyze_local_folder(request: AnalyzeLocalRequest) -> Result<AnalyzeRes
                     if let Some(skill_info) = parse_skill_md(&path.to_path_buf(), "local") {
                         // Calculate relative path
                         let relative_path = path.parent().unwrap().strip_prefix(&source_path).unwrap_or(path.parent().unwrap());
+                        let already_exists = skills_dir.as_ref().map_or(false, |dir| dir.join(&skill_info.name).exists());
                         
                         discovered_skills.push(DiscoveredSkill {
                             name: skill_info.name,
                             path: relative_path.to_string_lossy().to_string(),
                             description: skill_info.description,
+                            exists: already_exists,
                         });
                     }
                 }
@@ -1384,6 +1388,7 @@ async fn analyze_github_repo(request: AnalyzeRequest) -> Result<AnalyzeResult, S
         }
 
         // Scan for SKILL.md
+        let skills_dir = get_claude_skills_dir();
         let mut discovered_skills = Vec::new();
         for entry in WalkDir::new(&temp_dir).max_depth(5) {
             if let Ok(entry) = entry {
@@ -1392,11 +1397,13 @@ async fn analyze_github_repo(request: AnalyzeRequest) -> Result<AnalyzeResult, S
                     if let Some(skill_info) = parse_skill_md(&path.to_path_buf(), "temp") {
                         // Calculate relative path
                         let relative_path = path.parent().unwrap().strip_prefix(&temp_dir).unwrap_or(path.parent().unwrap());
+                        let already_exists = skills_dir.as_ref().map_or(false, |dir| dir.join(&skill_info.name).exists());
                         
                         discovered_skills.push(DiscoveredSkill {
                             name: skill_info.name,
                             path: relative_path.to_string_lossy().to_string(),
                             description: skill_info.description,
+                            exists: already_exists,
                         });
                     }
                 }
