@@ -1199,12 +1199,6 @@ const MySkills = () => {
                                           {skill.description}
                                         </div>
                                       )}
-
-                                      <div className="pt-1">
-                                        <span className="text-[10px] text-gray-400 font-mono bg-black/5 dark:bg-white/5 px-2 py-1 rounded-md truncate max-w-full inline-block">
-                                          {skill.path}
-                                        </span>
-                                      </div>
                                     </div>
                                   </motion.div>
                                 ))}

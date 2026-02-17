@@ -1441,10 +1441,37 @@ async fn import_selected_skills(request: InstallSelectedRequest) -> Result<Impor
         let mut success_count = 0;
 
         for rel_path in request.selected_paths {
-            let source_dir = temp_path.join(&rel_path);
-            // Use directory name as skill name, or fallback to hash if conflict? 
-            // For now assume folder name is meaningful
-            let skill_name = source_dir.file_name().unwrap_or_default().to_string_lossy().to_string();
+            let source_dir = if rel_path.is_empty() {
+                temp_path.clone()
+            } else {
+                temp_path.join(&rel_path)
+            };
+            
+            // 从目录名获取 skill 名称
+            let mut skill_name = source_dir.file_name().unwrap_or_default().to_string_lossy().to_string();
+            
+            // 如果文件夹名是临时目录或为空，从 SKILL.md 解析真实名称
+            if skill_name.is_empty() || skill_name.starts_with(".temp_import") {
+                let skill_md_path = source_dir.join("SKILL.md");
+                if skill_md_path.exists() {
+                    if let Ok(content) = fs::read_to_string(&skill_md_path) {
+                        let (_, parsed_name, _) = parse_yaml_frontmatter(&content);
+                        if let Some(name) = parsed_name {
+                            skill_name = name;
+                        } else {
+                            // Fallback: 从仓库 URL 提取名称
+                            let url = &request.repo_url;
+                            if let Some(last_segment) = url.trim_end_matches('/').rsplit('/').next() {
+                                let clean = last_segment.to_lowercase().replace(' ', "-");
+                                if !clean.is_empty() {
+                                    skill_name = clean;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
             let target_dir = skills_dir.join(&skill_name);
 
             // If target exists, maybe we should rename? For now, we overwrite or skip?
