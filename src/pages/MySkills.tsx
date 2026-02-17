@@ -540,150 +540,154 @@ const MySkills = () => {
         </div>
       </div>
 
-      {/* Tabs & Search & Batch Actions */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-          <div role="tablist" className="tabs tabs-boxed bg-black/5 dark:bg-white/5 p-1 rounded-2xl border border-gray-200/60 dark:border-white/10">
-            <a
-              role="tab"
-              className={`tab transition-all duration-300 rounded-lg text-sm font-medium ${
-                activeTab === 'all' 
-                ? 'bg-white dark:bg-white/10 text-blue-500 shadow-sm ring-1 ring-gray-200/50 dark:ring-white/10' 
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-              onClick={() => setActiveTab('all')}
-            >
-              {t('all')} ({installedSkills.length})
-            </a>
-            <a
-              role="tab"
-              className={`tab transition-all duration-300 rounded-lg text-sm font-medium ${
-                activeTab === 'system' 
-                ? 'bg-white dark:bg-white/10 text-blue-500 shadow-sm ring-1 ring-gray-200/50 dark:ring-white/10' 
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-              onClick={() => setActiveTab('system')}
-            >
-              <span className="flex items-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full ${activeTab === 'system' ? 'bg-primary' : 'bg-base-content/20'}`} />
-                {t('systemLevel')} ({installedSkills.filter(s => s.type === 'system').length})
-              </span>
-            </a>
-            <a
-              role="tab"
-              className={`tab transition-all duration-300 rounded-lg text-sm font-medium ${
-                activeTab === 'project' 
-                ? 'bg-white dark:bg-white/10 text-blue-500 shadow-sm ring-1 ring-gray-200/50 dark:ring-white/10' 
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-              onClick={() => setActiveTab('project')}
-            >
-               <span className="flex items-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full ${activeTab === 'project' ? 'bg-accent' : 'bg-base-content/20'}`} />
-                {t('projectLevel')} ({installedSkills.filter(s => s.type === 'project').length})
-              </span>
-            </a>
-          </div>
-
-          <div className={`transition-opacity duration-200 ${selectedIds.size ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-            <SearchBox
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder={t('searchPlaceholder') || "搜索技能名称或描述..."}
-              width={200}
-              expandedWidth={280}
-            />
-          </div>
+      {/* Tabs & Search / Batch Actions */}
+      <div className="flex items-center justify-between gap-4">
+        {/* Left: Tabs */}
+        <div role="tablist" className="tabs tabs-boxed bg-black/5 dark:bg-white/5 p-1 rounded-2xl border border-gray-200/60 dark:border-white/10 shrink-0">
+          <a
+            role="tab"
+            className={`tab transition-all duration-300 rounded-lg text-sm font-medium ${
+              activeTab === 'all' 
+              ? 'bg-white dark:bg-white/10 text-blue-500 shadow-sm ring-1 ring-gray-200/50 dark:ring-white/10' 
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+            onClick={() => setActiveTab('all')}
+          >
+            {t('all')} ({installedSkills.length})
+          </a>
+          <a
+            role="tab"
+            className={`tab transition-all duration-300 rounded-lg text-sm font-medium ${
+              activeTab === 'system' 
+              ? 'bg-white dark:bg-white/10 text-blue-500 shadow-sm ring-1 ring-gray-200/50 dark:ring-white/10' 
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+            onClick={() => setActiveTab('system')}
+          >
+            <span className="flex items-center gap-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full ${activeTab === 'system' ? 'bg-primary' : 'bg-base-content/20'}`} />
+              {t('systemLevel')} ({installedSkills.filter(s => s.type === 'system').length})
+            </span>
+          </a>
+          <a
+            role="tab"
+            className={`tab transition-all duration-300 rounded-lg text-sm font-medium ${
+              activeTab === 'project' 
+              ? 'bg-white dark:bg-white/10 text-blue-500 shadow-sm ring-1 ring-gray-200/50 dark:ring-white/10' 
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+            onClick={() => setActiveTab('project')}
+          >
+             <span className="flex items-center gap-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full ${activeTab === 'project' ? 'bg-accent' : 'bg-base-content/20'}`} />
+              {t('projectLevel')} ({installedSkills.filter(s => s.type === 'project').length})
+            </span>
+          </a>
         </div>
 
-          {/* Batch Actions */}
-          <AnimatePresence>
-            {selectedIds.size > 0 && (
-              <motion.div
-                initial={{ opacity: 0, x: 20, scale: 0.95 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: 10, scale: 0.95 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-                className="flex items-center bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-lg px-2 py-1.5 md:px-3 gap-2 md:gap-3"
+        {/* Right: Search OR Batch Actions (mutually exclusive, same position) */}
+        <AnimatePresence mode="wait">
+          {selectedIds.size > 0 ? (
+            <motion.div
+              key="batch-bar"
+              initial={{ opacity: 0, x: 20, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 10, scale: 0.95 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="flex items-center bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-lg px-2 py-1.5 md:px-3 gap-2 md:gap-3"
+            >
+              {/* Count Badge */}
+              <div className="flex items-center gap-2 pl-1">
+                <div className="flex items-center justify-center bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold px-2 py-0.5 rounded-lg text-sm min-w-[24px]">
+                  {selectedIds.size}
+                </div>
+                <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-medium hidden sm:inline whitespace-nowrap">
+                  {t('selected')}
+                </span>
+              </div>
+
+              {/* Divider */}
+              <div className="h-5 w-px bg-gray-200 dark:bg-white/10 mx-1 hidden sm:block" />
+
+              {/* Select All / Deselect All */}
+              <button
+                className="p-1.5 md:px-2 md:py-1.5 rounded-lg text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 transition-colors whitespace-nowrap"
+                onClick={() => {
+                  if (selectedIds.size === filteredSkills.length) {
+                    setSelectedIds(new Set());
+                  } else {
+                    setSelectedIds(new Set(filteredSkills.map(s => s.id)));
+                  }
+                }}
               >
-                {/* Count Badge */}
-                <div className="flex items-center gap-2 pl-1">
-                  <div className="flex items-center justify-center bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold px-2 py-0.5 rounded-lg text-sm min-w-[24px]">
-                    {selectedIds.size}
-                  </div>
-                  <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-medium hidden sm:inline whitespace-nowrap">
-                    {t('selected')}
-                  </span>
-                </div>
+                {selectedIds.size === filteredSkills.length ? t('deselectAll') : t('selectAllSkills')}
+              </button>
 
-                {/* Divider */}
-                <div className="h-5 w-px bg-gray-200 dark:bg-white/10 mx-1 hidden sm:block" />
+              {/* Divider */}
+              <div className="h-5 w-px bg-gray-200 dark:bg-white/10 mx-1" />
 
-                {/* Select All / Deselect All */}
-                <div className="flex items-center gap-1">
-                 <button
-                    className="p-1.5 md:px-2 md:py-1.5 rounded-lg text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 transition-colors whitespace-nowrap"
-                    onClick={() => {
-                      if (selectedIds.size === filteredSkills.length) {
-                        setSelectedIds(new Set());
-                      } else {
-                        setSelectedIds(new Set(filteredSkills.map(s => s.id)));
-                      }
-                    }}
-                  >
-                    {selectedIds.size === filteredSkills.length ? t('deselectAll') : t('selectAllSkills')}
-                  </button>
-                </div>
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 transition-all font-medium text-xs md:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleBatchUpdate}
+                  disabled={isUpdating || updatableSelected.length === 0}
+                >
+                  {isUpdating ? (
+                    <span className="loading loading-spinner loading-xs" />
+                  ) : (
+                    <Download size={14} className="md:w-4 md:h-4" />
+                  )}
+                  <span className="hidden md:inline">{t('batchUpdate')}</span>
+                  {updatableSelected.length > 0 && <span className="opacity-80 text-[10px] md:text-xs">({updatableSelected.length})</span>}
+                </motion.button>
 
-                {/* Divider */}
-                <div className="h-5 w-px bg-gray-200 dark:bg-white/10 mx-1" />
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 dark:border-red-500/30 text-red-500 bg-red-50/50 dark:bg-red-500/10 hover:bg-red-100/50 dark:hover:bg-red-500/20 rounded-xl transition-all font-medium text-xs md:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleBatchDelete}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <span className="loading loading-spinner loading-xs" />
+                  ) : (
+                    <Trash2 size={14} className="md:w-4 md:h-4" />
+                  )}
+                  <span className="hidden md:inline">{t('batchDelete')}</span>
+                </motion.button>
 
-                {/* Action Buttons */}
-                <div className="flex items-center gap-2">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-md shadow-blue-500/20 hover:shadow-blue-500/30 transition-all font-medium text-xs md:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={handleBatchUpdate}
-                    disabled={isUpdating || updatableSelected.length === 0}
-                  >
-                    {isUpdating ? (
-                      <span className="loading loading-spinner loading-xs" />
-                    ) : (
-                      <Download size={14} className="md:w-4 md:h-4" />
-                    )}
-                    <span className="hidden md:inline">{t('batchUpdate')}</span>
-                    {updatableSelected.length > 0 && <span className="opacity-80 text-[10px] md:text-xs">({updatableSelected.length})</span>}
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 dark:border-red-500/30 text-red-500 bg-red-50/50 dark:bg-red-500/10 hover:bg-red-100/50 dark:hover:bg-red-500/20 rounded-xl transition-all font-medium text-xs md:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={handleBatchDelete}
-                    disabled={isDeleting}
-                  >
-                    {isDeleting ? (
-                      <span className="loading loading-spinner loading-xs" />
-                    ) : (
-                      <Trash2 size={14} className="md:w-4 md:h-4" />
-                    )}
-                    <span className="hidden md:inline">{t('batchDelete')}</span>
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: 1.1, rotate: 90 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="p-1.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors ml-1"
-                    onClick={() => setSelectedIds(new Set())}
-                    aria-label={t('cancel')}
-                  >
-                    <X size={16} />
-                  </motion.button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                <motion.button
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors ml-1"
+                  onClick={() => setSelectedIds(new Set())}
+                  aria-label={t('cancel')}
+                >
+                  <X size={16} />
+                </motion.button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="search-box"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+            >
+              <SearchBox
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder={t('searchPlaceholder') || "搜索技能名称或描述..."}
+                width={200}
+                expandedWidth={280}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
       </StickyHeader>
 
