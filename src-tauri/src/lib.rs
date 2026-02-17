@@ -566,7 +566,7 @@ async fn import_github_skill(request: ImportGithubRequest) -> Result<ImportResul
         if parts.len() < 5 {
             return ImportResult {
                 success: false,
-                message: "无效的 GitHub URL".to_string(),
+                message: "Invalid GitHub URL".to_string(),
                 blocked: false,
             };
         }
@@ -580,7 +580,7 @@ async fn import_github_skill(request: ImportGithubRequest) -> Result<ImportResul
                 Some(dir) => dir,
                 None => return ImportResult {
                     success: false,
-                    message: "无法确定 Skills 目录".to_string(),
+                    message: "Cannot determine skills directory".to_string(),
                     blocked: false,
                 },
             }
@@ -742,7 +742,7 @@ fn uninstall_skill(request: UninstallRequest) -> Result<ImportResult, String> {
     if request.skill_paths.is_empty() {
         return Ok(ImportResult {
             success: false,
-            message: "未提供 Skill 路径".to_string(),
+            message: "No skill paths provided".to_string(),
             blocked: false,
         });
     }
@@ -798,7 +798,7 @@ fn import_local_skill(request: ImportLocalRequest) -> Result<ImportResult, Strin
     if !source.exists() {
         return Ok(ImportResult {
             success: false,
-            message: "源路径不存在".to_string(),
+            message: "Source path does not exist".to_string(),
             blocked: false,
         });
     }
@@ -1263,7 +1263,7 @@ async fn analyze_local_folder(request: AnalyzeLocalRequest) -> Result<AnalyzeRes
         if !source_path.exists() {
              return AnalyzeResult {
                 success: false,
-                message: "源目录不存在".to_string(),
+                message: "Source directory not found".to_string(),
                 skills: vec![],
                 temp_path: "".to_string(),
             };
@@ -1309,7 +1309,7 @@ async fn analyze_github_repo(request: AnalyzeRequest) -> Result<AnalyzeResult, S
         if !repo_url.starts_with("http") {
              return AnalyzeResult {
                 success: false,
-                message: "无效的 URL".to_string(),
+                message: "Invalid URL".to_string(),
                 skills: vec![],
                 temp_path: "".to_string(),
             };
@@ -1319,7 +1319,7 @@ async fn analyze_github_repo(request: AnalyzeRequest) -> Result<AnalyzeResult, S
             Some(dir) => dir,
             None => return AnalyzeResult {
                 success: false,
-                message: "无法确定 Skills 目录".to_string(),
+                message: "Cannot determine skills directory".to_string(),
                 skills: vec![],
                 temp_path: "".to_string(),
             },
@@ -1410,7 +1410,7 @@ async fn import_selected_skills(request: InstallSelectedRequest) -> Result<Impor
         if !temp_path.exists() {
              return ImportResult {
                 success: false,
-                message: "临时导入目录不存在".to_string(),
+                message: "Temporary import directory not found".to_string(),
                 blocked: false,
             };
         }

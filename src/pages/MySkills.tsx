@@ -52,6 +52,26 @@ const MySkills = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
+  // Backend error message → i18n key mapping
+  const backendErrorMap: Record<string, string> = {
+    'Invalid GitHub URL': 'error.invalidGithubUrl',
+    'Invalid URL': 'error.invalidUrl',
+    'Cannot determine skills directory': 'error.cannotDetermineSkillsDir',
+    'No skill paths provided': 'error.noSkillPathsProvided',
+    'Source path does not exist': 'error.sourcePathNotExist',
+    'Source directory not found': 'error.sourceDirNotFound',
+    'Temporary import directory not found': 'error.tempDirNotFound',
+  };
+
+  const translateBackendError = (msg: string): string => {
+    // Exact match
+    if (backendErrorMap[msg]) return t(backendErrorMap[msg]);
+    // Partial match for dynamic messages like "Git clone failed: ..."
+    if (msg.startsWith('Git clone failed')) return `${t('error.gitCloneFailed')}: ${msg.slice('Git clone failed:'.length).trim()}`;
+    if (msg.startsWith('Git command failed')) return `${t('error.gitCommandFailed')}: ${msg.slice('Git command failed:'.length).trim()}`;
+    return msg;
+  };
+
   // 多选状态
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [updateResult, setUpdateResult] = useState<{show: boolean, success: number, failed: number} | null>(null);
@@ -204,10 +224,10 @@ const MySkills = () => {
         const allPaths = new Set(result.skills.map((s) => s.path));
         setSelectedSkillPaths(allPaths);
       } else {
-        setAnalysisError(result.message);
+        setAnalysisError(translateBackendError(result.message));
       }
     } catch (err) {
-      setAnalysisError(err instanceof Error ? err.message : String(err));
+      setAnalysisError(translateBackendError(err instanceof Error ? err.message : String(err)));
     }
   };
 
@@ -250,7 +270,7 @@ const MySkills = () => {
                     setSelectedSkillPaths(allPaths);
                   }
               } else {
-                  setAnalysisError(result.message);
+                  setAnalysisError(translateBackendError(result.message));
               }
               setIsImporting(false);
               return;
@@ -277,7 +297,7 @@ const MySkills = () => {
             clearAnalysisResult();
             setShowImportModal(false);
           } else {
-            setAnalysisError(result.message);
+            setAnalysisError(translateBackendError(result.message));
           }
       } else if (importType === 'github') {
         if (!analysisResult) {
@@ -306,13 +326,13 @@ const MySkills = () => {
           clearAnalysisResult();
           setShowImportModal(false);
         } else {
-          setAnalysisError(result.message);
+          setAnalysisError(translateBackendError(result.message));
         }
       }
     } catch (error) {
       console.error('[UI] Import failed:', error);
       const errMsg = error instanceof Error ? error.message : String(error);
-      setAnalysisError(errMsg);
+      setAnalysisError(translateBackendError(errMsg));
     } finally {
       setIsImporting(false);
     }

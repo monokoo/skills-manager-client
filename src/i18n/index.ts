@@ -159,6 +159,18 @@ const resources = {
       enterLocalPath: "Please enter local path",
       pleaseSelectSkill: "Please select at least one skill to import",
       nativeDialogOnly: "Native dialog is only available in desktop client, please enter path manually",
+
+      // Backend error messages mapping
+      'error.invalidGithubUrl': 'Invalid GitHub URL',
+      'error.invalidUrl': 'Invalid URL',
+      'error.cannotDetermineSkillsDir': 'Cannot determine skills directory',
+      'error.noSkillPathsProvided': 'No skill paths provided',
+      'error.sourcePathNotExist': 'Source path does not exist',
+      'error.sourceDirNotFound': 'Source directory not found',
+      'error.tempDirNotFound': 'Temporary import directory not found',
+      'error.gitCloneFailed': 'Git clone failed',
+      'error.gitCommandFailed': 'Git command failed',
+
     searchPlaceholder: "Search skill name or description...",
     noSearchResults: "No matching skills found for \"{{query}}\"",
     clearSearch: "Clear Search",
@@ -422,6 +434,17 @@ const resources = {
       enterLocalPath: "请输入本地路径",
       pleaseSelectSkill: "请至少选择一个 Skill 进行导入",
       nativeDialogOnly: "原生对话框仅在桌面客户端可用，请手动输入路径",
+
+      // 后端错误信息映射
+      'error.invalidGithubUrl': '无效的 GitHub URL',
+      'error.invalidUrl': '无效的 URL',
+      'error.cannotDetermineSkillsDir': '无法确定 Skills 目录',
+      'error.noSkillPathsProvided': '未提供 Skill 路径',
+      'error.sourcePathNotExist': '源路径不存在',
+      'error.sourceDirNotFound': '源目录不存在',
+      'error.tempDirNotFound': '临时导入目录不存在',
+      'error.gitCloneFailed': 'Git 克隆失败',
+      'error.gitCommandFailed': 'Git 命令执行失败',
 
       // 通用
       loading: "加载中...",
