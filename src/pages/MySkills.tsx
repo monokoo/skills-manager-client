@@ -85,7 +85,7 @@ const MySkills = () => {
       setDeleteResult({show: true, success: false, message: `${t('deleteError')}: ${errMsg}`});
     } finally {
       setIsDeleting(false);
-      setTimeout(() => setDeleteResult({show: false, success: false, message: ''}), 3000);
+      setTimeout(() => setDeleteResult({show: false, success: false, message: ''}), 6000);
     }
   };
 
@@ -123,7 +123,7 @@ const MySkills = () => {
     setSelectedIds(new Set());
     await scanLocalSkills();
     setIsDeleting(false);
-    setTimeout(() => setDeleteResult({show: false, success: false, message: ''}), 3000);
+    setTimeout(() => setDeleteResult({show: false, success: false, message: ''}), 6000);
   };
 
   // 单个更新
@@ -144,7 +144,7 @@ const MySkills = () => {
       });
     } finally {
       setUpdatingSkillId(null);
-      setTimeout(() => setDeleteResult({show: false, success: false, message: ''}), 3000);
+      setTimeout(() => setDeleteResult({show: false, success: false, message: ''}), 6000);
     }
   };
 
@@ -327,7 +327,7 @@ const MySkills = () => {
     } finally {
       setIsImporting(false);
       if (!analysisResult) {
-          setTimeout(() => setDeleteResult((prev) => ({ ...prev, show: false })), 3000);
+          setTimeout(() => setDeleteResult((prev) => ({ ...prev, show: false })), 6000);
       }
     }
   };
@@ -404,7 +404,7 @@ const MySkills = () => {
       failed: result.failed.length
     });
     setSelectedIds(new Set());
-    setTimeout(() => setUpdateResult(null), 5000);
+    setTimeout(() => setUpdateResult(null), 6000);
   };
 
   // 获取可更新的选中 Skills
@@ -1107,31 +1107,37 @@ const MySkills = () => {
                               </div>
                               <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                                 {analysisResult.skills.map((skill) => (
-                                  <label
+                                  <div
                                     key={skill.path}
-                                    className={`flex items-start gap-3 p-3 rounded-2xl cursor-pointer transition-all border
+                                    className={`flex items-start gap-3 p-3 rounded-2xl cursor-pointer transition-all border group
                                       ${selectedSkillPaths.has(skill.path)
-                                        ? 'bg-blue-50/50 dark:bg-blue-500/10 border-blue-500/20'
-                                        : 'bg-gray-50/50 dark:bg-white/5 border-transparent hover:border-gray-200 dark:hover:border-white/10'}`}
+                                        ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20'
+                                        : 'bg-white/50 dark:bg-white/5 border-transparent hover:bg-white/80 dark:hover:bg-white/10'}`}
+                                    onClick={() => toggleSelectSkill(skill.path)}
                                   >
-                                    <input
-                                      type="checkbox"
-                                      className="checkbox checkbox-sm checkbox-primary mt-0.5 rounded-md"
-                                      checked={selectedSkillPaths.has(skill.path)}
-                                      onChange={() => toggleSelectSkill(skill.path)}
-                                    />
+                                    <div className="mt-0.5 shrink-0 text-gray-400 group-hover:text-blue-500 transition-colors">
+                                      {selectedSkillPaths.has(skill.path) ? (
+                                        <CheckSquare size={18} className="text-blue-500" />
+                                      ) : (
+                                        <Square size={18} />
+                                      )}
+                                    </div>
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="font-semibold text-sm">{skill.name}</span>
-                                        <span className="text-[9px] text-gray-400 font-mono bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">
+                                        <span className={`font-semibold text-sm ${selectedSkillPaths.has(skill.path) ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
+                                          {skill.name}
+                                        </span>
+                                        <span className="text-[9px] text-gray-400 font-mono bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded truncate max-w-[200px]">
                                           {skill.path}
                                         </span>
                                       </div>
                                       {skill.description && (
-                                        <div className="text-[10px] mt-1 text-gray-500 dark:text-gray-400 line-clamp-1">{skill.description}</div>
+                                        <div className="text-xs mt-1 text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                                          {skill.description}
+                                        </div>
                                       )}
                                     </div>
-                                  </label>
+                                  </div>
                                 ))}
                               </div>
                             </motion.div>
