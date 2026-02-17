@@ -192,7 +192,11 @@ const MySkills = () => {
   };
 
   const handleAnalyze = async () => {
-    if (!importUrl) return;
+    if (!importUrl.trim()) {
+      setFormError(t('enterGithubUrl'));
+      return;
+    }
+    setFormError(null);
     setAnalysisError(null);
     try {
       const result = await analyzeGithubRepo(importUrl);
@@ -231,19 +235,6 @@ const MySkills = () => {
     
     setIsImporting(true);
     setFormError(null);
-
-    // Form missing validation
-    if (importType === 'github' && !importUrl.trim()) {
-      setFormError(t('enterGithubUrl'));
-      setIsImporting(false);
-      return;
-    }
-    if (importType === 'local' && !importPath.trim()) {
-      setFormError(t('enterLocalPath'));
-      setIsImporting(false);
-      return;
-    }
-
     setAnalysisError(null);
 
     try {
@@ -1274,7 +1265,18 @@ const MySkills = () => {
                           transition-all duration-300 min-w-[100px]"
                          onClick={() => {
                            if (!analysisResult && !isImporting) {
-                             handleAnalyze();
+                             if (importType === 'local') {
+                               if (!importPath.trim()) {
+                                 setFormError(t('enterLocalPath'));
+                                 return;
+                               }
+                               setFormError(null);
+                             }
+                             if (importType === 'github') {
+                               handleAnalyze();
+                             } else {
+                               handleImport();
+                             }
                            } else {
                              handleImport();
                            }
