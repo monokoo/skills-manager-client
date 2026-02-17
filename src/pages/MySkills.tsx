@@ -585,25 +585,15 @@ const MySkills = () => {
             </a>
           </div>
 
-          <AnimatePresence mode="wait">
-            {!selectedIds.size && (
-              <motion.div
-                key="search-box"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.15, ease: "easeOut" }}
-              >
-                <SearchBox
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  placeholder={t('searchPlaceholder') || "搜索技能名称或描述..."}
-                  width={200}
-                  expandedWidth={280}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div className={`transition-opacity duration-200 ${selectedIds.size ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+            <SearchBox
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder={t('searchPlaceholder') || "搜索技能名称或描述..."}
+              width={200}
+              expandedWidth={280}
+            />
+          </div>
         </div>
 
           {/* Batch Actions */}
