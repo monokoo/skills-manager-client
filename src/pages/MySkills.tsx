@@ -8,6 +8,7 @@ import {
   CheckSquare, Square, ArrowUpDown, ArrowUp, ArrowDown 
 } from 'lucide-react';
 import { SearchBox } from '../components/ui/SearchBox';
+import { StickyHeader } from '../components/ui/StickyHeader';
 import type { InstalledSkill } from '../types';
 import { invoke } from '@tauri-apps/api/core';
 // Using dynamic import for @tauri-apps/plugin-dialog to ensure browser compatibility
@@ -413,7 +414,7 @@ const MySkills = () => {
   });
 
   return (
-    <div className="space-y-4">
+    <div>
       {/* Toast Notifications */}
       {deleteResult.show && (
         <div className="toast toast-top toast-end z-50">
@@ -433,6 +434,7 @@ const MySkills = () => {
         </div>
       )}
 
+      <StickyHeader className="space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
@@ -576,9 +578,10 @@ const MySkills = () => {
           </div>
         )}
       </div>
+      </StickyHeader>
 
       {/* Skills List Area - Added min-height to prevent layout jump */}
-      <div className="min-h-[400px]">
+      <div className="min-h-[400px] pt-4">
         {filteredSkills.length > 0 ? (
           <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-200/60 dark:border-white/10 overflow-hidden shadow-sm">
           {/* List Header */}

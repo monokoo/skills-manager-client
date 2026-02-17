@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useSkillStore } from '../store/useSkillStore';
 import { Download, Star, ExternalLink, Check, Loader2, Shield, ShieldCheck, ShieldAlert, X, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles } from 'lucide-react';
 import { SearchBox } from '../components/ui/SearchBox';
+import { StickyHeader } from '../components/ui/StickyHeader';
 import { getLocalizedDescription } from '../utils/i18n';
 import { invoke } from '@tauri-apps/api/core';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -353,7 +354,7 @@ const Marketplace = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div>
       {/* Install Status Toast */}
       {installStatus.show && (
         <div className="toast toast-top toast-end z-50">
@@ -409,6 +410,7 @@ const Marketplace = () => {
         </div>
       )}
 
+      <StickyHeader>
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div className="space-y-2">
@@ -466,6 +468,7 @@ const Marketplace = () => {
           />
         </div>
       </div>
+      </StickyHeader>
 
       {/* Batch Action Bar */}
       <AnimatePresence>
@@ -495,7 +498,7 @@ const Marketplace = () => {
       {!isLoading && (
         <>
           {/* Skills Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pt-4">
             {currentSkills.map((skill) => {
               const installed = isInstalled(skill.id);
               const isCurrentlyInstalling = installingSkillId === skill.id;
@@ -631,7 +634,7 @@ const Marketplace = () => {
                   disabled={page === 1}
                   onClick={() => {
                     setPage(1);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    document.getElementById('main-content')?.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                 >
                   <ChevronsLeft size={18} />
@@ -641,7 +644,7 @@ const Marketplace = () => {
                   disabled={page === 1}
                   onClick={() => {
                     setPage(p => Math.max(1, p - 1));
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    document.getElementById('main-content')?.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                 >
                   <ChevronLeft size={18} />
@@ -658,7 +661,7 @@ const Marketplace = () => {
                       }`}
                       onClick={() => {
                         setPage(pageNum);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        document.getElementById('main-content')?.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
                     >
                       {pageNum}
@@ -671,7 +674,7 @@ const Marketplace = () => {
                   disabled={page === totalPages}
                   onClick={() => {
                     setPage(p => Math.min(totalPages, p + 1));
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    document.getElementById('main-content')?.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                 >
                   <ChevronRight size={18} />
@@ -681,7 +684,7 @@ const Marketplace = () => {
                   disabled={page === totalPages}
                   onClick={() => {
                     setPage(totalPages);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    document.getElementById('main-content')?.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                 >
                   <ChevronsRight size={18} />
