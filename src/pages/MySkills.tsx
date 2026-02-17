@@ -1528,35 +1528,59 @@ const MySkills = () => {
                   {t('selectPathsToDelete')}
                 </p>
                 <div className="space-y-2">
-                  {(deleteTarget.localPaths || [deleteTarget.localPath]).map((p, i) => (
-                    <label
-                      key={i}
-                      className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all
-                        ${selectedDeletePaths.has(p)
-                          ? 'bg-red-50/60 dark:bg-red-500/5 border-red-200 dark:border-red-500/20'
-                          : 'bg-gray-50/50 dark:bg-white/5 border-gray-200/50 dark:border-white/10 hover:bg-gray-100/60 dark:hover:bg-white/8'
-                        }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedDeletePaths.has(p)}
-                        onChange={() => {
-                          setSelectedDeletePaths(prev => {
-                            const next = new Set(prev);
-                            if (next.has(p)) next.delete(p);
-                            else next.add(p);
-                            return next;
-                          });
-                        }}
-                        className="checkbox checkbox-sm checkbox-error mt-0.5 shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-xs font-mono text-gray-600 dark:text-gray-300 break-all leading-relaxed">
-                          {p.replace(/^\/Users\/[^/]+/, '~')}
-                        </span>
-                      </div>
-                    </label>
-                  ))}
+                  {(deleteTarget.localPaths || [deleteTarget.localPath]).map((p, i) => {
+                    const isChecked = selectedDeletePaths.has(p);
+                    return (
+                      <label
+                        key={i}
+                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all duration-200
+                          ${isChecked
+                            ? 'bg-red-50/60 dark:bg-red-500/5 border-red-300 dark:border-red-500/30 shadow-sm shadow-red-500/5'
+                            : 'bg-gray-50/50 dark:bg-white/5 border-gray-200/50 dark:border-white/10 hover:bg-gray-100/60 dark:hover:bg-white/8 hover:border-gray-300 dark:hover:border-white/20'
+                          }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setSelectedDeletePaths(prev => {
+                              const next = new Set(prev);
+                              if (next.has(p)) next.delete(p);
+                              else next.add(p);
+                              return next;
+                            });
+                          }}
+                          className="sr-only"
+                        />
+                        <div className={`
+                          w-[18px] h-[18px] rounded-md border-2 shrink-0
+                          flex items-center justify-center transition-all duration-200
+                          ${isChecked
+                            ? 'bg-red-500 border-red-500 shadow-sm shadow-red-500/30'
+                            : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-white/10'
+                          }
+                        `}>
+                          <svg
+                            className={`w-3 h-3 text-white transition-all duration-200 ${isChecked ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`}
+                            viewBox="0 0 12 12"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M2.5 6L5 8.5L9.5 3.5" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className={`text-xs font-mono break-all leading-relaxed transition-colors duration-200
+                            ${isChecked ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-300'}`}>
+                            {p.replace(/^\/Users\/[^/]+/, '~')}
+                          </span>
+                        </div>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
