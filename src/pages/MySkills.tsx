@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useSkillStore } from '../store/useSkillStore';
 import { 
   Trash2, Eye, FolderOpen, X, Github, HardDrive, Plus, ExternalLink, 
   RefreshCw, AlertCircle, CheckCircle, Package, Calendar, Download, 
-  CheckSquare, Square, ArrowUpDown, ArrowUp, ArrowDown 
+  CheckSquare, Square, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { SearchBox } from '../components/ui/SearchBox';
 import { StickyHeader } from '../components/ui/StickyHeader';
@@ -47,8 +47,9 @@ const MySkills = () => {
   const [selectedSkillPaths, setSelectedSkillPaths] = useState<Set<string>>(new Set());
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteResult, setDeleteResult] = useState<{show: boolean, success: boolean, message: string}>({show: false, success: false, message: ''});
+  const [toastMessage, setToastMessage] = useState<{show: boolean, success: boolean, message: string}>({show: false, success: false, message: ''});
   const [formError, setFormError] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // 多选状态
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -57,6 +58,12 @@ const MySkills = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'installDate' | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const showToast = (success: boolean, message: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToastMessage({ show: true, success, message });
+    toastTimerRef.current = setTimeout(() => setToastMessage({ show: false, success: false, message: '' }), 6000);
+  };
 
   const handleUninstall = async (skill: InstalledSkill) => {
     if (isDeleting) return;
@@ -70,7 +77,7 @@ const MySkills = () => {
       });
 
       if (result.success) {
-        setDeleteResult({show: true, success: true, message: `${skill.name} ${t('deleteSuccess')}`});
+        showToast(true, `${skill.name} ${t('deleteSuccess')}`);
         setSelectedIds(prev => {
           const next = new Set(prev);
           next.delete(skill.id);
@@ -78,14 +85,13 @@ const MySkills = () => {
         });
         await scanLocalSkills();
       } else {
-        setDeleteResult({show: true, success: false, message: `${t('deleteError')}: ${result.message}`});
+        showToast(false, `${t('deleteError')}: ${result.message}`);
       }
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      setDeleteResult({show: true, success: false, message: `${t('deleteError')}: ${errMsg}`});
+      showToast(false, `${t('deleteError')}: ${errMsg}`);
     } finally {
       setIsDeleting(false);
-      setTimeout(() => setDeleteResult({show: false, success: false, message: ''}), 6000);
     }
   };
 
@@ -115,15 +121,10 @@ const MySkills = () => {
       }
     }
 
-    setDeleteResult({
-      show: true,
-      success: failCount === 0,
-      message: t('batchDeleteComplete', { success: successCount, fail: failCount })
-    });
+    showToast(failCount === 0, t('batchDeleteComplete', { success: successCount, fail: failCount }));
     setSelectedIds(new Set());
     await scanLocalSkills();
     setIsDeleting(false);
-    setTimeout(() => setDeleteResult({show: false, success: false, message: ''}), 6000);
   };
 
   // 单个更新
@@ -131,20 +132,11 @@ const MySkills = () => {
     setUpdatingSkillId(skillId);
     try {
       await reinstallSkill(skillId);
-      setDeleteResult({
-        show: true,
-        success: true,
-        message: t('updateSuccess')
-      });
+      showToast(true, t('updateSuccess'));
     } catch {
-      setDeleteResult({
-        show: true,
-        success: false,
-        message: t('updateFailed')
-      });
+      showToast(false, t('updateFailed'));
     } finally {
       setUpdatingSkillId(null);
-      setTimeout(() => setDeleteResult({show: false, success: false, message: ''}), 6000);
     }
   };
 
@@ -237,20 +229,21 @@ const MySkills = () => {
     if (isImporting) return;
     
     setIsImporting(true);
-    setAnalysisError(null);
     setFormError(null);
 
     // Form missing validation
     if (importType === 'github' && !importUrl.trim()) {
-      setFormError('请输入仓库 URL');
+      setFormError(t('enterGithubUrl'));
       setIsImporting(false);
       return;
     }
     if (importType === 'local' && !importPath.trim()) {
-      setFormError('请选择文件路径');
+      setFormError(t('enterLocalPath'));
       setIsImporting(false);
       return;
     }
+
+    setAnalysisError(null);
 
     try {
       if (importType === 'local') {
@@ -269,7 +262,7 @@ const MySkills = () => {
 
           // Second step: perform import
           if (selectedSkillPaths.size === 0) {
-              setAnalysisError('请至少选择一个技能进行导入');
+              setAnalysisError(t('pleaseSelectSkill'));
               setIsImporting(false);
               return;
           }
@@ -281,7 +274,7 @@ const MySkills = () => {
           );
 
           if (result.success) {
-            setDeleteResult({ show: true, success: true, message: result.message || t('importSuccessLocal') });
+            showToast(true, result.message || t('importSuccessLocal'));
             setImportType(null);
             setImportPath('');
             setSelectedSkillPaths(new Set());
@@ -298,7 +291,7 @@ const MySkills = () => {
         }
 
         if (selectedSkillPaths.size === 0) {
-            setAnalysisError('请选择要导入的技能');
+            setAnalysisError(t('pleaseSelectSkill'));
             setIsImporting(false);
             return;
         }
@@ -310,7 +303,7 @@ const MySkills = () => {
         );
 
         if (result.success) {
-          setDeleteResult({ show: true, success: true, message: result.message || t('importSuccessGitHub') });
+          showToast(true, result.message || t('importSuccessGitHub'));
           setImportType(null);
           setImportUrl('');
           setSelectedSkillPaths(new Set());
@@ -326,9 +319,6 @@ const MySkills = () => {
       setAnalysisError(errMsg);
     } finally {
       setIsImporting(false);
-      if (!analysisResult) {
-          setTimeout(() => setDeleteResult((prev) => ({ ...prev, show: false })), 6000);
-      }
     }
   };
 
@@ -416,10 +406,10 @@ const MySkills = () => {
   return (
     <div>
       {/* Toast Notifications */}
-      {deleteResult.show && (
+      {toastMessage.show && (
         <div className="toast toast-top toast-end z-50">
-          <div className={`alert ${deleteResult.success ? 'alert-success' : 'alert-error'} shadow-lg rounded-2xl`}>
-            <span>{deleteResult.message}</span>
+          <div className={`alert ${toastMessage.success ? 'alert-success' : 'alert-error'} shadow-lg rounded-2xl`}>
+            <span>{toastMessage.message}</span>
           </div>
         </div>
       )}
@@ -1127,7 +1117,7 @@ const MySkills = () => {
                                         <span className={`font-semibold text-sm ${selectedSkillPaths.has(skill.path) ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
                                           {skill.name}
                                         </span>
-                                        <span className="text-[9px] text-gray-400 font-mono bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded truncate max-w-[200px]">
+                                        <span className="text-[9px] text-gray-400 font-mono bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded truncate max-w-[40%]">
                                           {skill.path}
                                         </span>
                                       </div>
@@ -1191,7 +1181,7 @@ const MySkills = () => {
                                        }
                                      } else {
                                        console.warn('Native dialog is only available in Tauri app.');
-                                       setFormError('原生对话框仅在桌面客户端可用，请手动输入路径');
+                                       setFormError(t('nativeDialogOnly'));
                                      }
                                    } catch (err) {
                                      console.error('Failed to open directory dialog:', err);
@@ -1272,11 +1262,15 @@ const MySkills = () => {
                          onClick={handleImport}
                          disabled={
                            !!isImporting ||
-                           (importType === 'github' && !!analysisResult && (analysisResult.skills.length === 0 || selectedSkillPaths.size === 0))
+                           (!!analysisResult && (analysisResult.skills.length === 0 || selectedSkillPaths.size === 0))
                          }
                        >
                         {isImporting ? <span className="loading loading-spinner loading-xs mr-2" /> : null}
-                        {isImporting ? t('importing') : t('import')}
+                        {isImporting
+                          ? t('importing')
+                          : analysisResult
+                            ? t('import')
+                            : t('analyze')}
                       </motion.button>
                     </div>
                   </div>

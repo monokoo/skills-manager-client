@@ -156,6 +156,8 @@ const resources = {
       finalInstallPath: "Final Installation Path Preview",
       enterGithubUrl: "Please enter GitHub URL",
       enterLocalPath: "Please enter local path",
+      pleaseSelectSkill: "Please select at least one skill to import",
+      nativeDialogOnly: "Native dialog is only available in desktop client, please enter path manually",
     searchPlaceholder: "Search skill name or description...",
     noSearchResults: "No matching skills found for \"{{query}}\"",
     clearSearch: "Clear Search",
@@ -416,6 +418,8 @@ const resources = {
       importSuccessLocal: "成功从本地导入 Skill！",
       enterGithubUrl: "请输入 GitHub 链接",
       enterLocalPath: "请输入本地路径",
+      pleaseSelectSkill: "请至少选择一个技能进行导入",
+      nativeDialogOnly: "原生对话框仅在桌面客户端可用，请手动输入路径",
 
       // 通用
       loading: "加载中...",
