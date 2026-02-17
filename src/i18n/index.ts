@@ -146,6 +146,7 @@ const resources = {
       viewReport: "View Report",
       notScanned: "Not scanned",
       noSkillsInstalled: "No installed skills",
+      noSkillFound: "No Skill found in this directory",
       unknown: "Unknown",
       systemStatus: "System Status",
       
@@ -367,8 +368,8 @@ const resources = {
       localFolderPath: "本地文件夹路径",
       discoveredSkills: "已发现 Skills",
       nFound: "发现 {{count}} 个",
-      analyzing: "分析中...",
-      analyze: "分析",
+      analyzing: "解析中...",
+      analyze: "解析",
       deselectAll: "取消全选",
       selectAllSkills: "全选",
       importSelected: "导入已选 ({{count}})",
@@ -410,6 +411,7 @@ const resources = {
       viewReport: "查看报告",
       notScanned: "未扫描",
       noSkillsInstalled: "暂无已安装的 Skills",
+      noSkillFound: "未在该目录中发现 Skill",
       unknown: "未知",
       systemStatus: "系统状态",
 
@@ -418,7 +420,7 @@ const resources = {
       importSuccessLocal: "成功从本地导入 Skill！",
       enterGithubUrl: "请输入 GitHub 链接",
       enterLocalPath: "请输入本地路径",
-      pleaseSelectSkill: "请至少选择一个技能进行导入",
+      pleaseSelectSkill: "请至少选择一个 Skill 进行导入",
       nativeDialogOnly: "原生对话框仅在桌面客户端可用，请手动输入路径",
 
       // 通用

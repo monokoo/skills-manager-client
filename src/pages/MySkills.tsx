@@ -243,8 +243,12 @@ const MySkills = () => {
               // First step: analyze local folder
               const result = await analyzeLocalFolder(importPath);
               if (result.success) {
-                  const allPaths = new Set(result.skills.map(s => s.path));
-                  setSelectedSkillPaths(allPaths);
+                  if (result.skills.length === 0) {
+                    setAnalysisError(t('noSkillFound'));
+                  } else {
+                    const allPaths = new Set(result.skills.map(s => s.path));
+                    setSelectedSkillPaths(allPaths);
+                  }
               } else {
                   setAnalysisError(result.message);
               }
