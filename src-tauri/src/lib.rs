@@ -576,27 +576,80 @@ fn scan_skills() -> Result<ScanResult, String> {
     })
 }
 
+// 解析 GitHub URL，提取仓库基础地址、分支名、子路径和 skill 名称
+struct ParsedGithubUrl {
+    repo_base: String,
+    branch: String,
+    subpath: String,
+    skill_name: String,
+    has_subpath: bool,
+}
+
+fn parse_github_url(url: &str) -> Result<ParsedGithubUrl, String> {
+    let url = url.trim_end_matches('/');
+
+    if !url.starts_with("http") {
+        return Err("Invalid URL".to_string());
+    }
+
+    if let Some(tree_idx) = url.find("/tree/") {
+        let repo_base = url[..tree_idx].to_string();
+        let after_tree = &url[tree_idx + 6..]; // skip "/tree/"
+        let parts: Vec<&str> = after_tree.splitn(2, '/').collect();
+        let branch = parts[0].to_string();
+        let subpath = if parts.len() > 1 { parts[1].to_string() } else { String::new() };
+        let skill_name = if subpath.is_empty() {
+            // tree/branch 但没有子路径，用仓库名
+            repo_base.rsplit('/').next().unwrap_or("skill").to_string()
+        } else {
+            subpath.rsplit('/').next().unwrap_or("skill").to_string()
+        };
+
+        // 验证 repo_base 至少有 owner/repo
+        let base_parts: Vec<&str> = repo_base.split('/').collect();
+        if base_parts.len() < 5 {
+            return Err("Invalid GitHub URL: missing owner/repo".to_string());
+        }
+
+        Ok(ParsedGithubUrl {
+            repo_base,
+            branch,
+            subpath,
+            skill_name,
+            has_subpath: true,
+        })
+    } else {
+        let parts: Vec<&str> = url.split('/').collect();
+        if parts.len() < 5 {
+            return Err("Invalid GitHub URL".to_string());
+        }
+        let skill_name = parts[4].to_string();
+        Ok(ParsedGithubUrl {
+            repo_base: url.to_string(),
+            branch: String::new(),
+            subpath: String::new(),
+            skill_name,
+            has_subpath: false,
+        })
+    }
+}
+
 #[tauri::command(async)]
 async fn import_github_skill(request: ImportGithubRequest) -> Result<ImportResult, String> {
     let repo_url = request.repo_url.clone();
 
     let result = tokio::task::spawn_blocking(move || {
-        let parts: Vec<&str> = repo_url
-            .trim_end_matches('/')
-            .split('/')
-            .collect();
-
-        if parts.len() < 5 {
-            return ImportResult {
+        let parsed = match parse_github_url(&repo_url) {
+            Ok(p) => p,
+            Err(msg) => return ImportResult {
                 success: false,
-                message: "Invalid GitHub URL".to_string(),
+                message: msg,
                 blocked: false,
-            };
-        }
+            },
+        };
 
         // 确定安装目录
         let install_dir = if let Some(path) = &request.install_path {
-            // 项目级直接使用传入路径
             PathBuf::from(path)
         } else {
             match get_claude_skills_dir() {
@@ -617,24 +670,17 @@ async fn import_github_skill(request: ImportGithubRequest) -> Result<ImportResul
             };
         }
 
-        let skill_name = if repo_url.contains("/tree/") {
-            parts.last().unwrap_or(&"skill").to_string()
-        } else {
-            parts.get(4).unwrap_or(&"skill").to_string()
-        };
+        let target_dir = install_dir.join(&parsed.skill_name);
 
-        let target_dir = install_dir.join(&skill_name);
-
-        if repo_url.contains("/tree/") {
-            let repo_base = format!("https://github.com/{}/{}", parts[3], parts[4]);
-            let branch = parts.get(6).unwrap_or(&"main");
-            let subpath = parts[7..].join("/");
+        if parsed.has_subpath && !parsed.subpath.is_empty() {
+            let branch = if parsed.branch.is_empty() { "main".to_string() } else { parsed.branch.clone() };
+            let subpath = parsed.subpath.clone();
 
             let temp_dir = install_dir.join(".temp_clone");
             let _ = fs::remove_dir_all(&temp_dir);
 
             let output = Command::new("git")
-                .args(["clone", "--depth", "1", "--filter=blob:none", "--sparse", &repo_base, temp_dir.to_str().unwrap()])
+                .args(["clone", "--depth", "1", "--filter=blob:none", "--sparse", &parsed.repo_base, temp_dir.to_str().unwrap()])
                 .output();
 
             match output {
@@ -678,7 +724,7 @@ async fn import_github_skill(request: ImportGithubRequest) -> Result<ImportResul
 
             let checkout_output = Command::new("git")
                 .current_dir(&temp_dir)
-                .args(["checkout", branch])
+                .args(["checkout", &branch])
                 .output();
 
             match checkout_output {
@@ -716,7 +762,7 @@ async fn import_github_skill(request: ImportGithubRequest) -> Result<ImportResul
                 // 保存元数据 (sparse checkout)
                 let metadata = SkillMetadata {
                     source: "github".to_string(),
-                    source_url: Some(repo_url.clone()),
+                    source_url: Some(request.repo_url.clone()),
                     install_date: current_timestamp(),
                     commit_hash: None,  // sparse checkout 不保留 git 信息
                     version: None,
@@ -740,7 +786,7 @@ async fn import_github_skill(request: ImportGithubRequest) -> Result<ImportResul
             let _ = fs::remove_dir_all(&target_dir);
 
             let output = Command::new("git")
-                .args(["clone", "--depth", "1", &repo_url, target_dir.to_str().unwrap()])
+                .args(["clone", "--depth", "1", &parsed.repo_base, target_dir.to_str().unwrap()])
                 .output();
 
             match output {
@@ -775,7 +821,7 @@ async fn import_github_skill(request: ImportGithubRequest) -> Result<ImportResul
         // 保存元数据
         let metadata = SkillMetadata {
             source: "github".to_string(),
-            source_url: Some(repo_url.clone()),
+            source_url: Some(request.repo_url.clone()),
             install_date: current_timestamp(),
             commit_hash,
             version: None,  // 会从 SKILL.md 中提取
@@ -788,7 +834,7 @@ async fn import_github_skill(request: ImportGithubRequest) -> Result<ImportResul
 
         ImportResult {
             success: true,
-            message: format!("Successfully installed {} to {}", skill_name, target_dir.display()),
+            message: format!("Successfully installed {} to {}", parsed.skill_name, target_dir.display()),
             blocked: false,
         }
     }).await.map_err(|e| e.to_string())?;
@@ -1379,15 +1425,15 @@ async fn analyze_github_repo(request: AnalyzeRequest) -> Result<AnalyzeResult, S
     let repo_url = request.repo_url.clone();
     
     let result = tokio::task::spawn_blocking(move || {
-        // Validate URL
-        if !repo_url.starts_with("http") {
-             return AnalyzeResult {
+        let parsed = match parse_github_url(&repo_url) {
+            Ok(p) => p,
+            Err(msg) => return AnalyzeResult {
                 success: false,
-                message: "Invalid URL".to_string(),
+                message: msg,
                 skills: vec![],
                 temp_path: "".to_string(),
-            };
-        }
+            },
+        };
 
         let skills_dir = match get_claude_skills_dir() {
             Some(dir) => dir,
@@ -1413,38 +1459,156 @@ async fn analyze_github_repo(request: AnalyzeRequest) -> Result<AnalyzeResult, S
             };
         }
 
-        // Clone repo
-        let output = Command::new("git")
-            .args(["clone", "--depth", "1", &repo_url, temp_dir.to_str().unwrap()])
-            .output();
+        // 根据是否有子路径选择克隆策略
+        if parsed.has_subpath && !parsed.subpath.is_empty() {
+            let branch = if parsed.branch.is_empty() { "main".to_string() } else { parsed.branch.clone() };
 
-        match output {
-            Err(e) => return AnalyzeResult {
-                success: false,
-                message: format!("Git command failed: {}", e),
-                skills: vec![],
-                temp_path: "".to_string(),
-            },
-            Ok(o) if !o.status.success() => return AnalyzeResult {
-                success: false,
-                message: format!("Git clone failed: {}", String::from_utf8_lossy(&o.stderr)),
-                skills: vec![],
-                temp_path: "".to_string(),
-            },
-            _ => {}
+            // Sparse checkout: 仅下载子路径内容
+            let output = Command::new("git")
+                .args(["clone", "--depth", "1", "--filter=blob:none", "--sparse", &parsed.repo_base, temp_dir.to_str().unwrap()])
+                .output();
+
+            match output {
+                Err(e) => {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return AnalyzeResult {
+                        success: false,
+                        message: format!("Git command failed: {}", e),
+                        skills: vec![],
+                        temp_path: "".to_string(),
+                    };
+                },
+                Ok(o) if !o.status.success() => {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return AnalyzeResult {
+                        success: false,
+                        message: format!("Git clone failed: {}", String::from_utf8_lossy(&o.stderr)),
+                        skills: vec![],
+                        temp_path: "".to_string(),
+                    };
+                },
+                _ => {}
+            }
+
+            let sparse_output = Command::new("git")
+                .current_dir(&temp_dir)
+                .args(["sparse-checkout", "set", &parsed.subpath])
+                .output();
+
+            match sparse_output {
+                Err(e) => {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return AnalyzeResult {
+                        success: false,
+                        message: format!("Sparse checkout failed: {}", e),
+                        skills: vec![],
+                        temp_path: "".to_string(),
+                    };
+                },
+                Ok(o) if !o.status.success() => {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return AnalyzeResult {
+                        success: false,
+                        message: format!("Sparse checkout failed: {}", String::from_utf8_lossy(&o.stderr)),
+                        skills: vec![],
+                        temp_path: "".to_string(),
+                    };
+                },
+                _ => {}
+            }
+
+            let checkout_output = Command::new("git")
+                .current_dir(&temp_dir)
+                .args(["checkout", &branch])
+                .output();
+
+            match checkout_output {
+                Err(e) => {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return AnalyzeResult {
+                        success: false,
+                        message: format!("Git checkout failed: {}", e),
+                        skills: vec![],
+                        temp_path: "".to_string(),
+                    };
+                },
+                Ok(o) if !o.status.success() => {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return AnalyzeResult {
+                        success: false,
+                        message: format!("Git checkout failed: {}", String::from_utf8_lossy(&o.stderr)),
+                        skills: vec![],
+                        temp_path: "".to_string(),
+                    };
+                },
+                _ => {}
+            }
+
+            // 验证子路径目录存在
+            let subpath_dir = temp_dir.join(&parsed.subpath);
+            if !subpath_dir.exists() {
+                let _ = fs::remove_dir_all(&temp_dir);
+                return AnalyzeResult {
+                    success: false,
+                    message: format!("Subpath not found in repository: {}", parsed.subpath),
+                    skills: vec![],
+                    temp_path: "".to_string(),
+                };
+            }
+        } else {
+            // 普通 clone
+            let clone_url = if parsed.has_subpath {
+                // tree/branch 但没有子路径
+                &parsed.repo_base
+            } else {
+                &parsed.repo_base
+            };
+
+            let output = Command::new("git")
+                .args(["clone", "--depth", "1", clone_url, temp_dir.to_str().unwrap()])
+                .output();
+
+            match output {
+                Err(e) => {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return AnalyzeResult {
+                        success: false,
+                        message: format!("Git command failed: {}", e),
+                        skills: vec![],
+                        temp_path: "".to_string(),
+                    };
+                },
+                Ok(o) if !o.status.success() => {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return AnalyzeResult {
+                        success: false,
+                        message: format!("Git clone failed: {}", String::from_utf8_lossy(&o.stderr)),
+                        skills: vec![],
+                        temp_path: "".to_string(),
+                    };
+                },
+                _ => {}
+            }
         }
 
+        // 确定扫描的根目录：如果有子路径，只扫描子路径目录
+        let scan_root = if parsed.has_subpath && !parsed.subpath.is_empty() {
+            temp_dir.join(&parsed.subpath)
+        } else {
+            temp_dir.clone()
+        };
+
         // Scan for SKILL.md
-        let skills_dir = get_claude_skills_dir();
+        let skills_dir_check = get_claude_skills_dir();
         let mut discovered_skills = Vec::new();
-        for entry in WalkDir::new(&temp_dir).max_depth(5) {
+        for entry in WalkDir::new(&scan_root).max_depth(5) {
             if let Ok(entry) = entry {
                 let path = entry.path();
                 if path.file_name().map(|n| n == "SKILL.md").unwrap_or(false) {
                     if let Some(skill_info) = parse_skill_md(&path.to_path_buf(), "temp") {
-                        // Calculate relative path
+                        // Calculate relative path from temp_dir (not scan_root)
                         let relative_path = path.parent().unwrap().strip_prefix(&temp_dir).unwrap_or(path.parent().unwrap());
-                        let already_exists = skills_dir.as_ref().map_or(false, |dir| dir.join(&skill_info.name).exists());
+                        let already_exists = skills_dir_check.as_ref().map_or(false, |dir| dir.join(&skill_info.name).exists());
                         
                         discovered_skills.push(DiscoveredSkill {
                             name: skill_info.name,
