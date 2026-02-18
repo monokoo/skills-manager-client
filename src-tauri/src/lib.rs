@@ -651,15 +651,55 @@ async fn import_github_skill(request: ImportGithubRequest) -> Result<ImportResul
                 _ => {}
             }
 
-            let _ = Command::new("git")
+            let sparse_output = Command::new("git")
                 .current_dir(&temp_dir)
                 .args(["sparse-checkout", "set", &subpath])
                 .output();
 
-            let _ = Command::new("git")
+            match sparse_output {
+                Err(e) => {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return ImportResult {
+                        success: false,
+                        message: format!("Sparse checkout failed: {}", e),
+                        blocked: false,
+                    };
+                },
+                Ok(o) if !o.status.success() => {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return ImportResult {
+                        success: false,
+                        message: format!("Sparse checkout failed: {}", String::from_utf8_lossy(&o.stderr)),
+                        blocked: false,
+                    };
+                },
+                _ => {}
+            }
+
+            let checkout_output = Command::new("git")
                 .current_dir(&temp_dir)
                 .args(["checkout", branch])
                 .output();
+
+            match checkout_output {
+                Err(e) => {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return ImportResult {
+                        success: false,
+                        message: format!("Git checkout failed: {}", e),
+                        blocked: false,
+                    };
+                },
+                Ok(o) if !o.status.success() => {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return ImportResult {
+                        success: false,
+                        message: format!("Git checkout failed: {}", String::from_utf8_lossy(&o.stderr)),
+                        blocked: false,
+                    };
+                },
+                _ => {}
+            }
 
             let source = temp_dir.join(&subpath);
             if source.exists() {
@@ -686,6 +726,13 @@ async fn import_github_skill(request: ImportGithubRequest) -> Result<ImportResul
                     description_en: None,
                 };
                 let _ = save_skill_metadata(&target_dir, &metadata);
+            } else {
+                let _ = fs::remove_dir_all(&temp_dir);
+                return ImportResult {
+                    success: false,
+                    message: format!("Sparse checkout failed: source path not found ({})", subpath),
+                    blocked: false,
+                };
             }
 
             let _ = fs::remove_dir_all(&temp_dir);
