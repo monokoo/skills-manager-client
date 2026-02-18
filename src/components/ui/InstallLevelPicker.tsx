@@ -56,7 +56,7 @@ export function InstallLevelPicker({
                 ? 'border-gray-200/50 dark:border-white/5 text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-50'
                 : value === level.id
                   ? 'border-blue-500 bg-blue-500/10 dark:bg-blue-400/15 text-blue-600 dark:text-blue-400'
-                  : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5'
+                  : 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10'
               }
             `}
           >
