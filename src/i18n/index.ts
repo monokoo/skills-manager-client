@@ -261,6 +261,8 @@ const resources = {
       clickToSelect: "Click to select",
       loadingSkills: "Loading Skills...",
       failed: "failed",
+      installing: "Installing...",
+      reinstall: "Reinstall",
 
       // Settings Detail
       adminRequired: "Admin required",
@@ -549,6 +551,8 @@ const resources = {
       clickToSelect: "点击选择",
       loadingSkills: "正在加载 Skills...",
       failed: "失败",
+      installing: "安装中...",
+      reinstall: "重新安装",
 
       // 设置详情
       adminRequired: "需管理员权限",

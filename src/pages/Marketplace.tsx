@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSkillStore } from '../store/useSkillStore';
-import { Download, Star, ExternalLink, Check, Loader2, Shield, ShieldCheck, ShieldAlert, X, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Package } from 'lucide-react';
+import { Download, Star, ExternalLink, Check, Loader2, Shield, ShieldCheck, ShieldAlert, X, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Package, RefreshCw } from 'lucide-react';
 import { SearchBox } from '../components/ui/SearchBox';
 import { StickyHeader } from '../components/ui/StickyHeader';
 import { InstallLevelPicker, type InstallLevel } from '../components/ui/InstallLevelPicker';
@@ -167,28 +167,6 @@ const Marketplace = () => {
   const handleInstall = async (skill: any, overridePath?: string) => {
     if (installingSkillId) return;
 
-    // Overwrite check: confirm before installing an already-installed skill
-    if (isInstalled(skill.id)) {
-      let confirmed = false;
-      try {
-        if ((window as any).__TAURI_INTERNALS__) {
-          const { confirm: tauriConfirm } = await import('@tauri-apps/plugin-dialog');
-          confirmed = await tauriConfirm(
-            t('overwriteDesc', { name: skill.name }),
-            {
-              title: t('overwriteConfirmTitle'),
-              okLabel: t('overwriteConfirm'),
-              cancelLabel: t('cancel'),
-            }
-          );
-        } else {
-          confirmed = window.confirm(t('overwriteDesc', { name: skill.name }));
-        }
-      } catch {
-        confirmed = window.confirm(t('overwriteDesc', { name: skill.name }));
-      }
-      if (!confirmed) return;
-    }
 
     setInstallTarget(null);
     setInstallingSkillId(skill.id);
@@ -274,7 +252,7 @@ const Marketplace = () => {
     if (skillsToInstall.length === 0) return;
 
     // Overwrite check: confirm before overwriting already-installed skills
-    const existingSkills = skillsToInstall.filter(s => isInstalled(s.id));
+    const existingSkills = skillsToInstall.filter(s => isInstalled(s.id, s.name));
     if (existingSkills.length > 0) {
       const names = existingSkills.map(s => `  • ${s.name}`).join('\n');
       let confirmed = false;
@@ -358,8 +336,10 @@ const Marketplace = () => {
     }
   };
 
-  const isInstalled = (skillId: string) => {
-    return installedSkills.some(s => s.id === skillId);
+  const isInstalled = (skillId: string, skillName?: string) => {
+    return installedSkills.some(s =>
+      s.id === skillId || s.name === skillId || (skillName && s.name === skillName)
+    );
   };
 
   const filteredSkills = marketplaceSkills.filter(skill =>
@@ -542,7 +522,7 @@ const Marketplace = () => {
             }}
             onSelectAll={() => {
               const uninstalledIdsInCurrentPage = currentSkills
-                .filter(s => !isInstalled(s.id))
+                .filter(s => !isInstalled(s.id, s.name))
                 .map(s => s.id);
               selectAllBatch(uninstalledIdsInCurrentPage);
             }}
@@ -564,7 +544,7 @@ const Marketplace = () => {
           {/* Skills Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pt-4">
             {currentSkills.map((skill) => {
-              const installed = isInstalled(skill.id);
+              const installed = isInstalled(skill.id, skill.name);
               const isCurrentlyInstalling = installingSkillId === skill.id;
               const isSelected = batchSelectedSkills.includes(skill.id);
               return (
@@ -643,12 +623,7 @@ const Marketplace = () => {
                         {t('source')}
                       </motion.button>
 
-                      {installed ? (
-                        <div className="inline-flex items-center h-10 gap-1.5 px-4 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl text-sm font-bold border border-emerald-500/20">
-                          <Check size={14} />
-                          {t('installed')}
-                        </div>
-                      ) : batchMode ? (
+                      {batchMode && !installed ? (
                         <div className={`h-10 flex items-center px-4 text-xs font-bold rounded-xl border transition-all ${
                           isSelected 
                             ? 'bg-blue-500 text-white border-transparent' 
@@ -656,11 +631,15 @@ const Marketplace = () => {
                         }`}>
                           {isSelected ? t('selected') : t('clickToSelect')}
                         </div>
-                      ) : (
+                      ) : !batchMode && (
                         <motion.button
-                          whileHover={{ scale: 1.05, boxShadow: "0 10px 15px -3px rgba(59, 130, 246, 0.3)" }}
+                          whileHover={{ scale: 1.05, boxShadow: installed ? "0 10px 15px -3px rgba(245, 158, 11, 0.3)" : "0 10px 15px -3px rgba(59, 130, 246, 0.3)" }}
                           whileTap={{ scale: 0.95 }}
-                          className="h-10 px-5 flex items-center gap-2 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-bold text-white shadow-md hover:shadow-lg transition-all"
+                          className={`h-10 px-5 flex items-center gap-2 rounded-xl text-sm font-bold text-white shadow-md hover:shadow-lg transition-all ${
+                            installed
+                              ? 'bg-gradient-to-br from-amber-500 to-orange-600'
+                              : 'bg-gradient-to-br from-blue-500 to-indigo-600'
+                          }`}
                           onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();
                             openInstallConfirm(skill);
@@ -673,6 +652,11 @@ const Marketplace = () => {
                               {installStatus.phase === 'scanning'
                                 ? t('scanning')
                                 : t('installing')}
+                            </>
+                          ) : installed ? (
+                            <>
+                              <RefreshCw size={14} />
+                              {t('reinstall')}
                             </>
                           ) : (
                             <>
