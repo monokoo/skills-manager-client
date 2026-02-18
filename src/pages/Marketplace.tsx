@@ -166,8 +166,31 @@ const Marketplace = () => {
 
   const handleInstall = async (skill: any, overridePath?: string) => {
     if (installingSkillId) return;
-    setInstallTarget(null);
 
+    // Overwrite check: confirm before installing an already-installed skill
+    if (isInstalled(skill.id)) {
+      let confirmed = false;
+      try {
+        if ((window as any).__TAURI_INTERNALS__) {
+          const { confirm: tauriConfirm } = await import('@tauri-apps/plugin-dialog');
+          confirmed = await tauriConfirm(
+            t('overwriteDesc', { name: skill.name }),
+            {
+              title: t('overwriteConfirmTitle'),
+              okLabel: t('overwriteConfirm'),
+              cancelLabel: t('cancel'),
+            }
+          );
+        } else {
+          confirmed = window.confirm(t('overwriteDesc', { name: skill.name }));
+        }
+      } catch {
+        confirmed = window.confirm(t('overwriteDesc', { name: skill.name }));
+      }
+      if (!confirmed) return;
+    }
+
+    setInstallTarget(null);
     setInstallingSkillId(skill.id);
 
     setInstallStatus({
@@ -246,10 +269,36 @@ const Marketplace = () => {
 
   const handleBatchInstall = async (overridePath?: string) => {
     if (batchSelectedSkills.length === 0 || isBatchInstalling) return;
-    setShowBatchConfirm(false);
 
     const skillsToInstall = marketplaceSkills.filter(s => batchSelectedSkills.includes(s.id));
     if (skillsToInstall.length === 0) return;
+
+    // Overwrite check: confirm before overwriting already-installed skills
+    const existingSkills = skillsToInstall.filter(s => isInstalled(s.id));
+    if (existingSkills.length > 0) {
+      const names = existingSkills.map(s => `  • ${s.name}`).join('\n');
+      let confirmed = false;
+      try {
+        if ((window as any).__TAURI_INTERNALS__) {
+          const { confirm: tauriConfirm } = await import('@tauri-apps/plugin-dialog');
+          confirmed = await tauriConfirm(
+            t('importOverwriteConfirm', { names }),
+            {
+              title: t('overwriteConfirmTitle'),
+              okLabel: t('overwriteConfirm'),
+              cancelLabel: t('cancel'),
+            }
+          );
+        } else {
+          confirmed = window.confirm(t('importOverwriteConfirm', { names }));
+        }
+      } catch {
+        confirmed = window.confirm(t('importOverwriteConfirm', { names }));
+      }
+      if (!confirmed) return;
+    }
+
+    setShowBatchConfirm(false);
 
     setIsBatchInstalling(true);
     setInstallStatus({
@@ -395,12 +444,6 @@ const Marketplace = () => {
 
                 {installStatus.securityReport && installStatus.phase === 'done' && (
                   <div className="mt-2 text-sm">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span>{t('securityScoreLabel')}</span>
-                      <span className={`font-bold ${getScoreColor(installStatus.securityReport.score)}`}>
-                        {installStatus.securityReport.score}/100
-                      </span>
-                    </div>
                     {installStatus.securityReport.issues.length > 0 && (
                       <p className="opacity-80">
                         {t('foundIssuesCount', { count: installStatus.securityReport.issues.length })}

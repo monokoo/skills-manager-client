@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { InstallLevel } from '../../../components/ui/InstallLevelPicker';
 
 /** Store 切片：useSkillImport 仅依赖这些属性 */
@@ -31,6 +31,9 @@ export const useSkillImport = (
   const [selectedSkillPaths, setSelectedSkillPaths] = useState<Set<string>>(new Set());
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Synchronous mutex lock to prevent concurrent imports
+  const importLockRef = useRef(false);
 
   const translateBackendError = useCallback((msg: string) => {
     const errorMap: Record<string, string> = {
@@ -105,21 +108,21 @@ export const useSkillImport = (
     level: string;
     projectIndex: number;
   }) => {
-    if (isImporting) return;
-    setIsImporting(true);
+    // Synchronous ref guard — immune to React's async state batching
+    if (importLockRef.current) return;
+    importLockRef.current = true;
 
     try {
       const { analysisResult, importSelectedSkills, projectPaths } = store;
-      
+
       if (!analysisResult) return;
 
       if (params.selectedPaths.size === 0) {
         setAnalysisError(t('pleaseSelectSkill'));
-        setIsImporting(false);
         return;
       }
 
-      // Overwrite check — use Tauri dialog API for i18n button labels
+      // Overwrite check — BEFORE setting isImporting so the button stays normal
       const existingSkills = analysisResult.skills.filter(
         (s: any) => params.selectedPaths.has(s.path) && s.exists
       );
@@ -143,11 +146,11 @@ export const useSkillImport = (
         } catch {
           confirmed = window.confirm(t('importOverwriteConfirm', { names }));
         }
-        if (!confirmed) {
-          setIsImporting(false);
-          return;
-        }
+        if (!confirmed) return;
       }
+
+      // Only show "importing" AFTER user has confirmed
+      setIsImporting(true);
 
       const importInstallPath = params.level === 'project' && projectPaths.length > 0
         ? (projectPaths[params.projectIndex] || projectPaths[0])
@@ -164,7 +167,6 @@ export const useSkillImport = (
       if (result.success) {
         showToast(true, result.message || t(params.type === 'local' ? 'importSuccessLocal' : 'importSuccessGitHub'));
         setShowImportModal(false);
-        // Clear state
         setImportType(null);
         setSelectedSkillPaths(new Set());
         store.clearAnalysisResult();
@@ -175,8 +177,9 @@ export const useSkillImport = (
       setAnalysisError(translateBackendError(error.message || String(error)));
     } finally {
       setIsImporting(false);
+      importLockRef.current = false;
     }
-  }, [store, isImporting, showToast, translateBackendError, t]);
+  }, [store, showToast, translateBackendError, t]);
 
   const closeImportModal = useCallback(() => {
     setShowImportModal(false);

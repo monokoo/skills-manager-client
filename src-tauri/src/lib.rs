@@ -1526,6 +1526,21 @@ async fn import_selected_skills(request: InstallSelectedRequest) -> Result<Impor
     Ok(result)
 }
 
+#[tauri::command]
+async fn cleanup_temp_import(temp_path: String) -> Result<(), String> {
+    let path = PathBuf::from(&temp_path);
+    if !path.exists() {
+        return Ok(());
+    }
+    // Safety: only delete directories that match .temp_import_ prefix
+    let dir_name = path.file_name().unwrap_or_default().to_string_lossy();
+    if !dir_name.starts_with(".temp_import_") {
+        return Err("Refusing to delete non-temp directory".to_string());
+    }
+    fs::remove_dir_all(&path).map_err(|e| format!("Failed to cleanup: {}", e))?;
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1552,7 +1567,8 @@ pub fn run() {
             create_symlink,
             create_all_symlinks,
             remove_symlink,
-            get_platform_info
+            get_platform_info,
+            cleanup_temp_import
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

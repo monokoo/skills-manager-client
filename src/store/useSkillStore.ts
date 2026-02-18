@@ -177,6 +177,10 @@ export const useSkillStore = create<SkillStore>()(
       },
       
       clearAnalysisResult: () => {
+        const current = get().analysisResult;
+        if (current?.tempPath) {
+          invoke('cleanup_temp_import', { tempPath: current.tempPath }).catch(() => {});
+        }
         set({ analysisResult: null });
       },
 
@@ -470,6 +474,11 @@ export const useSkillStore = create<SkillStore>()(
       },
       
       analyzeGithubRepo: async (url: string) => {
+          // Cleanup previous temp directory before starting new analysis
+          const prev = get().analysisResult;
+          if (prev?.tempPath) {
+            invoke('cleanup_temp_import', { tempPath: prev.tempPath }).catch(() => {});
+          }
           set({ isAnalyzing: true, analysisResult: null });
           try {
               const result: AnalyzeResult = await invoke('analyze_github_repo', {

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { InstallLevelPicker } from '../../../components/ui/InstallLevelPicker';
+import type { DiscoveredSkill } from '../../../store/useSkillStore';
 import type { ImportSkillModalProps } from '../types';
 
 export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
@@ -52,7 +53,7 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
     if (selectedSkillPaths.size === analysisResult.skills.length) {
       setSelectedSkillPaths(new Set());
     } else {
-      setSelectedSkillPaths(new Set(analysisResult.skills.map((s: any) => s.path)));
+      setSelectedSkillPaths(new Set(analysisResult.skills.map((s: DiscoveredSkill) => s.path)));
     }
   };
 
@@ -90,6 +91,8 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          layout
+          transition={{ layout: { duration: 0.25, ease: 'easeInOut' } }}
           className="relative w-full max-w-lg bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl
             rounded-3xl border border-white/20 dark:border-white/10 shadow-2xl overflow-hidden"
         >
@@ -116,7 +119,7 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
               </p>
             )}
 
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode="wait" initial={false}>
             {/* Selection View */}
             {!importType ? (
               <motion.div
@@ -181,7 +184,7 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
-                className="space-y-4"
+                className="space-y-4 min-h-[200px]"
               >
                 {importType === 'github' ? (
                   <div className="space-y-5">
@@ -301,7 +304,7 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                               <div className="text-center py-8 text-gray-400 text-sm">
                                 {t('noSkillFoundInRepo')}
                               </div>
-                            ) : analysisResult.skills.map((skill: any, index: number) => (
+                            ) : analysisResult.skills.map((skill: DiscoveredSkill, index: number) => (
                               <motion.div
                                 key={skill.path}
                                 initial={{ opacity: 0, y: 10 }}
@@ -451,6 +454,7 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                 <AnimatePresence>
                 {analysisError && (
                   <motion.div
+                    key="analysis-error"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
@@ -466,6 +470,7 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                 <AnimatePresence>
                 {analysisResult && analysisResult.skills.length > 0 && (
                   <motion.div
+                    key="install-level"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
@@ -476,8 +481,8 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                       {t('installLevelTitle')}
                     </p>
                     <InstallLevelPicker
-                      value={importLevel as any}
-                      onChange={setImportLevel as any}
+                      value={importLevel}
+                      onChange={setImportLevel}
                       projectPaths={projectPaths}
                       selectedProjectIndex={selectedProjectIndex}
                       onProjectIndexChange={onProjectIndexChange}
