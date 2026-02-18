@@ -33,9 +33,23 @@ export const useSkillImport = (
   const [formError, setFormError] = useState<string | null>(null);
 
   const translateBackendError = useCallback((msg: string) => {
-    // 简易错误翻译逻辑 (原 MySkills.tsx 中的逻辑)
+    const errorMap: Record<string, string> = {
+      'Invalid URL': t('error.invalidUrl'),
+      'Invalid GitHub URL': t('error.invalidGithubUrl'),
+      'Source directory not found': t('error.sourceDirNotFound'),
+      'Temporary import directory not found': t('error.tempDirNotFound'),
+      'Cannot determine skills directory': t('error.cannotDetermineSkillsDir'),
+      'No skill paths provided': t('error.noSkillPathsProvided'),
+      'Source path does not exist': t('error.sourcePathNotExist'),
+      'SKILL.md not found': t('error.skillMdNotFound'),
+    };
+    for (const [key, value] of Object.entries(errorMap)) {
+      if (msg.includes(key)) return value;
+    }
     if (msg.includes('Not Found')) return t('repoNotFound');
     if (msg.includes('Permission denied')) return t('permissionDenied');
+    if (msg.includes('git clone') || msg.includes('Git clone')) return t('error.gitCloneFailed');
+    if (msg.includes('git') && msg.includes('failed')) return t('error.gitCommandFailed');
     return msg;
   }, [t]);
 

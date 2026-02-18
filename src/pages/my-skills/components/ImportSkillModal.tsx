@@ -116,9 +116,17 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
               </p>
             )}
 
+            <AnimatePresence mode="wait">
             {/* Selection View */}
             {!importType ? (
-              <div className="space-y-4 mt-2">
+              <motion.div
+                key="selection"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-4 mt-2"
+              >
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-2 font-medium">
                   {t('selectImportMethod')}
                 </p>
@@ -164,10 +172,17 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                     </div>
                   </div>
                 </motion.div>
-              </div>
+              </motion.div>
             ) : (
               /* Input View */
-              <div className="space-y-4">
+              <motion.div
+                key={`input-${importType}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-4"
+              >
                 {importType === 'github' ? (
                   <div className="space-y-5">
                     <div className="form-control">
@@ -188,6 +203,8 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                         value={importUrl}
                         onChange={(e) => {
                           setImportUrl(e.target.value);
+                          if (formError) setFormError(null);
+                          if (analysisError) setAnalysisError(null);
                           if (analysisResult) onClearAnalysis();
                         }}
                         onKeyDown={(e) => {
@@ -203,10 +220,11 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                         {formError && importType === 'github' ? (
                           <motion.div
                             key="error"
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="mt-1.5 flex items-center gap-1.5 text-red-500 text-[11px] font-medium overflow-hidden"
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.15 }}
+                            className="mt-1.5 flex items-center gap-1.5 text-red-500 text-[11px] font-medium"
                           >
                             <AlertCircle size={12} className="shrink-0" />
                             <span>{formError}</span>
@@ -215,10 +233,11 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                           !analysisResult && (
                             <motion.div
                               key="tip"
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                              exit={{ opacity: 0, height: 0 }}
-                              className="mt-1.5 flex items-center gap-1.5 text-base-content/30 dark:text-gray-500 text-[11px] italic overflow-hidden"
+                              initial={{ opacity: 0, y: -4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -4 }}
+                              transition={{ duration: 0.15 }}
+                              className="mt-1.5 flex items-center gap-1.5 text-base-content/30 dark:text-gray-500 text-[11px] italic"
                             >
                               <AlertCircle size={12} className="shrink-0 opacity-50" />
                               <span>{t('repoMustContainSkill')}</span>
@@ -234,6 +253,8 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.2 }}
                           className="space-y-3 overflow-hidden"
                         >
                           <div className="flex justify-between items-center">
@@ -358,6 +379,7 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                           onChange={(e) => {
                             setImportPath(e.target.value);
                             if (formError) setFormError(null);
+                            if (analysisError) setAnalysisError(null);
                             if (analysisResult) onClearAnalysis();
                           }}
                           autoFocus
@@ -397,10 +419,11 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                         {formError && importType === 'local' ? (
                           <motion.div
                             key="error"
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="mt-1.5 flex items-center gap-1.5 text-red-500 text-[11px] font-medium overflow-hidden"
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.15 }}
+                            className="mt-1.5 flex items-center gap-1.5 text-red-500 text-[11px] font-medium"
                           >
                             <AlertCircle size={12} className="shrink-0" />
                             <span>{formError}</span>
@@ -409,10 +432,11 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                           !analysisResult && (
                             <motion.div
                               key="tip"
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                              exit={{ opacity: 0, height: 0 }}
-                              className="mt-1.5 flex items-center gap-1.5 text-base-content/30 dark:text-gray-500 text-[11px] italic overflow-hidden"
+                              initial={{ opacity: 0, y: -4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -4 }}
+                              transition={{ duration: 0.15 }}
+                              className="mt-1.5 flex items-center gap-1.5 text-base-content/30 dark:text-gray-500 text-[11px] italic"
                             >
                               <AlertCircle size={12} className="shrink-0 opacity-50" />
                               <span>{t('folderMustContainSkill')}</span>
@@ -424,21 +448,30 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                   </div>
                 )}
 
-                {/* Analysis Error */}
+                <AnimatePresence>
                 {analysisError && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
                     className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl flex items-center gap-3 text-sm"
                   >
                     <AlertCircle size={16} className="shrink-0" />
                     <span>{analysisError}</span>
                   </motion.div>
                 )}
+                </AnimatePresence>
 
-                {/* Install Level Picker */}
+                <AnimatePresence>
                 {analysisResult && analysisResult.skills.length > 0 && (
-                  <div className="pt-2">
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="pt-2 overflow-hidden"
+                  >
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
                       {t('installLevelTitle')}
                     </p>
@@ -449,8 +482,9 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                       selectedProjectIndex={selectedProjectIndex}
                       onProjectIndexChange={onProjectIndexChange}
                     />
-                  </div>
+                  </motion.div>
                 )}
+                </AnimatePresence>
 
                 {/* Footer Actions */}
                 <div className="flex justify-end gap-3 pt-2">
@@ -504,8 +538,9 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                           : t('analyze')}
                   </motion.button>
                 </div>
-              </div>
+              </motion.div>
             )}
+            </AnimatePresence>
           </div>
         </motion.div>
       </div>

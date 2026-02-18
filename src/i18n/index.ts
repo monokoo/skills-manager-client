@@ -172,6 +172,9 @@ const resources = {
       'error.tempDirNotFound': 'Temporary import directory not found',
       'error.gitCloneFailed': 'Git clone failed',
       'error.gitCommandFailed': 'Git command failed',
+      'error.skillMdNotFound': 'SKILL.md not found',
+      repoNotFound: 'Repository not found',
+      permissionDenied: 'Permission denied',
 
     searchPlaceholder: "Search skill name or description...",
     noSearchResults: "No matching skills found for \"{{query}}\"",
@@ -458,6 +461,9 @@ const resources = {
       'error.tempDirNotFound': '临时导入目录不存在',
       'error.gitCloneFailed': 'Git 克隆失败',
       'error.gitCommandFailed': 'Git 命令执行失败',
+      'error.skillMdNotFound': '未找到 SKILL.md 文件',
+      repoNotFound: '仓库不存在',
+      permissionDenied: '没有访问权限',
 
       // 通用
       loading: "加载中...",
