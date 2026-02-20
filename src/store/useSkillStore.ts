@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { InstalledSkill, MarketplaceSkill } from '../types';
+import type { InstalledSkill, MarketplaceSkill, CustomSource, CustomMarketplaceSkill } from '../types';
 import { invoke } from '@tauri-apps/api/core';
 
 interface AgentConfig {
@@ -131,6 +131,19 @@ interface SkillStore {
   checkCustomSymlinks: () => Promise<void>;
   addCustomSymlinkPath: (path: string) => void;
   removeCustomSymlinkPath: (path: string) => void;
+
+  // 自定义源 State
+  customSources: CustomSource[];
+  customMarketplaceSkills: CustomMarketplaceSkill[];
+  isLoadingCustom: boolean;
+  isSyncingSource: string | null;
+
+  // 自定义源 Actions
+  fetchCustomSources: () => Promise<void>;
+  fetchCustomMarketplace: () => Promise<void>;
+  addCustomSource: (url: string) => Promise<CustomSource>;
+  removeCustomSource: (id: string) => Promise<void>;
+  refreshCustomSource: (id?: string) => Promise<void>;
 }
 
 export const useSkillStore = create<SkillStore>()(
@@ -163,6 +176,12 @@ export const useSkillStore = create<SkillStore>()(
 
       // 平台信息
       platform: null,
+
+      // 自定义源
+      customSources: [],
+      customMarketplaceSkills: [],
+      isLoadingCustom: false,
+      isSyncingSource: null,
 
       setDefaultInstallLocation: (location: 'system' | 'project') => {
         set({ defaultInstallLocation: location });
@@ -769,7 +788,68 @@ export const useSkillStore = create<SkillStore>()(
         } catch (error) {
           console.error('Failed to check custom symlinks:', error);
         }
-      }
+      },
+
+      // --- Custom Sources Actions ---
+      fetchCustomSources: async () => {
+        try {
+          set({ isLoadingCustom: true });
+          const sources = await invoke<CustomSource[]>('get_custom_sources');
+          set({ customSources: sources, isLoadingCustom: false });
+        } catch (error) {
+          console.error('Failed to fetch custom sources:', error);
+          set({ isLoadingCustom: false });
+        }
+      },
+
+      fetchCustomMarketplace: async () => {
+        try {
+          const skills = await invoke<CustomMarketplaceSkill[]>('get_custom_marketplace');
+          set({ customMarketplaceSkills: skills });
+        } catch (error) {
+          console.error('Failed to fetch custom marketplace:', error);
+        }
+      },
+
+      addCustomSource: async (url: string) => {
+        set({ isSyncingSource: 'adding' });
+        try {
+          const source = await invoke<CustomSource>('add_custom_source', { url });
+          const { customSources } = get();
+          set({ customSources: [...customSources, source], isSyncingSource: null });
+          await get().fetchCustomMarketplace();
+          return source;
+        } catch (error) {
+          set({ isSyncingSource: null });
+          throw error;
+        }
+      },
+
+      removeCustomSource: async (id: string) => {
+        try {
+          await invoke('remove_custom_source', { id });
+          const { customSources, customMarketplaceSkills } = get();
+          set({
+            customSources: customSources.filter(s => s.id !== id),
+            customMarketplaceSkills: customMarketplaceSkills.filter(s => s.sourceId !== id),
+          });
+        } catch (error) {
+          console.error('Failed to remove custom source:', error);
+          throw error;
+        }
+      },
+
+      refreshCustomSource: async (id?: string) => {
+        set({ isSyncingSource: id || 'all' });
+        try {
+          const sources = await invoke<CustomSource[]>('refresh_custom_source', { id: id || null });
+          set({ customSources: sources, isSyncingSource: null });
+          await get().fetchCustomMarketplace();
+        } catch (error) {
+          console.error('Failed to refresh custom source:', error);
+          set({ isSyncingSource: null });
+        }
+      },
     }),
     {
       name: 'skill-manager-storage',

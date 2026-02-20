@@ -89,3 +89,35 @@ export interface SecurityIssue {
   file?: string;
   line?: number;
 }
+
+// 自定义源
+export type SourceStatus = 'synced' | 'syncing' | 'error' | 'pending';
+
+export interface CustomSource {
+  id: string;
+  url: string;
+  owner: string;
+  repo: string;
+  subpath: string;
+  branch: string;
+  addedAt: number;
+  lastSyncAt: number;
+  lastCommitHash: string;
+  skillCount: number;
+  status: SourceStatus;
+}
+
+export interface CustomMarketplaceSkill {
+  id: string;
+  name: string;
+  author: string;
+  authorAvatar: string;
+  description: string;
+  githubUrl: string;
+  stars: number;
+  forks: number;
+  updatedAt: number;
+  path: string;
+  branch: string;
+  sourceId: string;
+}

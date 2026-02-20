@@ -326,10 +326,54 @@ const MySkills = () => {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center p-20 text-center grayscale opacity-50">
-             <div className="text-4xl mb-4">📭</div>
-             <p className="text-sm font-medium">{t('noSkillsFound')}</p>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center justify-center py-20 px-8"
+          >
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-gray-100 to-gray-50 dark:from-white/10 dark:to-white/5 border border-gray-200/60 dark:border-white/10 flex items-center justify-center mb-6 shadow-sm">
+              {activeTab === 'project' ? (
+                <Package size={32} className="text-amber-400" />
+              ) : (
+                <Package size={32} className="text-gray-300 dark:text-gray-600" />
+              )}
+            </div>
+            <h3 className="text-base font-semibold text-gray-700 dark:text-gray-200 mb-2">
+              {t(`noSkillsFound_${activeTab}`)}
+            </h3>
+            <p className="text-sm text-gray-400 dark:text-gray-500 max-w-sm mb-6">
+              {activeTab === 'project'
+                ? t('emptyProjectHint')
+                : activeTab === 'system'
+                  ? t('emptySystemHint')
+                  : t('emptyAllHint')}
+            </p>
+            <div className="flex items-center gap-3">
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                className="flex items-center gap-2 px-5 h-10 rounded-xl font-medium text-sm text-white
+                  bg-gradient-to-r from-blue-500 to-indigo-600 shadow-md shadow-blue-500/20
+                  hover:shadow-lg hover:shadow-blue-500/30 transition-shadow"
+                onClick={() => importFlow.setShowImportModal(true)}
+              >
+                <Plus size={16} />
+                {t('importSkill')}
+              </motion.button>
+              {activeTab === 'project' && (
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="flex items-center gap-2 px-5 h-10 rounded-xl font-medium text-sm
+                    border border-gray-200/60 dark:border-white/10 bg-white/60 dark:bg-white/5
+                    text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors"
+                  onClick={() => window.location.href = '/settings'}
+                >
+                  {t('configProjectPath')}
+                </motion.button>
+              )}
+            </div>
+          </motion.div>
         )}
       </div>
 

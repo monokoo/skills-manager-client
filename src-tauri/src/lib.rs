@@ -271,6 +271,18 @@ fn get_claude_skills_dir() -> Option<PathBuf> {
     dirs::home_dir().map(|h| h.join(PRIMARY_SKILLS_DIR))
 }
 
+/// Expand `~` prefix in a path to the actual home directory.
+/// Rust's PathBuf does NOT expand `~` automatically, so any path
+/// received from the frontend must be expanded before use.
+fn expand_tilde(path: &str) -> PathBuf {
+    if path.starts_with("~/") || path == "~" {
+        if let Some(home) = dirs::home_dir() {
+            return home.join(&path[2..]);
+        }
+    }
+    PathBuf::from(path)
+}
+
 fn get_config_path() -> Option<PathBuf> {
     dirs::home_dir().map(|h| h.join(".claude").join("skill-manager-config.json"))
 }
@@ -583,6 +595,66 @@ struct ParsedGithubUrl {
     subpath: String,
     skill_name: String,
     has_subpath: bool,
+}
+
+// --- Custom Sources ---
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum SourceStatus {
+    Synced,
+    Syncing,
+    Error,
+    Pending,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CustomSource {
+    pub id: String,
+    pub url: String,
+    pub owner: String,
+    pub repo: String,
+    pub subpath: String,
+    pub branch: String,
+    #[serde(rename = "addedAt")]
+    pub added_at: u64,
+    #[serde(rename = "lastSyncAt")]
+    pub last_sync_at: u64,
+    #[serde(rename = "lastCommitHash")]
+    pub last_commit_hash: String,
+    #[serde(rename = "skillCount")]
+    pub skill_count: usize,
+    pub status: SourceStatus,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CustomMarketplaceSkill {
+    pub id: String,
+    pub name: String,
+    pub author: String,
+    #[serde(rename = "authorAvatar")]
+    pub author_avatar: String,
+    pub description: String,
+    #[serde(rename = "githubUrl")]
+    pub github_url: String,
+    pub stars: u64,
+    pub forks: u64,
+    #[serde(rename = "updatedAt")]
+    pub updated_at: u64,
+    pub path: String,
+    pub branch: String,
+    #[serde(rename = "sourceId")]
+    pub source_id: String,
+}
+
+fn get_custom_data_dir() -> Result<PathBuf, String> {
+    let base = dirs::data_dir()
+        .ok_or_else(|| "Cannot determine data directory".to_string())?;
+    let dir = base.join("skills-manager");
+    if !dir.exists() {
+        fs::create_dir_all(&dir).map_err(|e| format!("Failed to create data dir: {}", e))?;
+    }
+    Ok(dir)
 }
 
 fn parse_github_url(url: &str) -> Result<ParsedGithubUrl, String> {
@@ -1640,23 +1712,41 @@ pub struct InstallSelectedRequest {
     pub selected_paths: Vec<String>, // Relative paths of skills to install
     #[serde(rename = "repoUrl")]
     pub repo_url: String,
+    #[serde(rename = "installPath")]
+    pub install_path: Option<String>,
 }
 
 #[tauri::command(async)]
 async fn import_selected_skills(request: InstallSelectedRequest) -> Result<ImportResult, String> {
-    let temp_path = PathBuf::from(request.temp_path);
-    let skills_dir = get_claude_skills_dir().ok_or("Cannot determine skills directory")?;
+    let temp_path = expand_tilde(&request.temp_path);
+    let skills_dir = if let Some(ref path) = request.install_path {
+        let p = expand_tilde(path);
+        if let Err(e) = fs::create_dir_all(&p) {
+            return Ok(ImportResult {
+                success: false,
+                message: format!("Failed to create install directory: {}", e),
+                blocked: false,
+            });
+        }
+        p
+    } else {
+        get_claude_skills_dir().ok_or("Cannot determine skills directory")?
+    };
+
+    eprintln!("[import_selected_skills] temp_path={}, skills_dir={}, selected_paths={:?}",
+        temp_path.display(), skills_dir.display(), request.selected_paths);
     
     let result = tokio::task::spawn_blocking(move || {
         if !temp_path.exists() {
              return ImportResult {
                 success: false,
-                message: "Temporary import directory not found".to_string(),
+                message: format!("Temporary import directory not found: {}", temp_path.display()),
                 blocked: false,
             };
         }
 
         let mut success_count = 0;
+        let mut errors: Vec<String> = Vec::new();
 
         for rel_path in request.selected_paths {
             let source_dir = if rel_path.is_empty() {
@@ -1692,19 +1782,27 @@ async fn import_selected_skills(request: InstallSelectedRequest) -> Result<Impor
             
             let target_dir = skills_dir.join(&skill_name);
 
-            // If target exists, maybe we should rename? For now, we overwrite or skip?
-            // Let's remove existing to be safe (similar to reinstall)
+            eprintln!("[import_selected_skills] rel_path={}, source={}, target={}, source_exists={}",
+                rel_path, source_dir.display(), target_dir.display(), source_dir.exists());
+
+            if !source_dir.exists() {
+                errors.push(format!("Source not found: {}", rel_path));
+                continue;
+            }
+
+            // If target exists, remove to overwrite
             if target_dir.exists() {
                 let _ = fs::remove_dir_all(&target_dir);
             }
 
-            // Move directory (rename)
-            // Note: rename might fail if across filesystems, but here we are likely on same FS (user home)
-            // Fallback to copy if rename fails
-            if fs::rename(&source_dir, &target_dir).is_err() {
-                 if let Err(_) = copy_dir_all(&source_dir, &target_dir) {
-                     continue;
-                 }
+            // Move directory (rename), fallback to copy
+            if let Err(rename_err) = fs::rename(&source_dir, &target_dir) {
+                eprintln!("[import_selected_skills] rename failed: {}, trying copy", rename_err);
+                if let Err(copy_err) = copy_dir_all(&source_dir, &target_dir) {
+                    eprintln!("[import_selected_skills] copy also failed: {}", copy_err);
+                    errors.push(format!("{}: copy failed: {}", skill_name, copy_err));
+                    continue;
+                }
             }
 
              // Add metadata
@@ -1712,7 +1810,7 @@ async fn import_selected_skills(request: InstallSelectedRequest) -> Result<Impor
                 source: "github".to_string(),
                 source_url: Some(request.repo_url.clone()),
                 install_date: current_timestamp(),
-                commit_hash: None, // We lost git history in temp move, or we could have captured it in analyze
+                commit_hash: None,
                 version: None,
                 author: None,
                 description: None,
@@ -1727,10 +1825,18 @@ async fn import_selected_skills(request: InstallSelectedRequest) -> Result<Impor
         // Cleanup temp dir
         let _ = fs::remove_dir_all(&temp_path);
 
-        ImportResult {
-            success: true,
-            message: format!("Imported {} skills", success_count),
-            blocked: false,
+        if errors.is_empty() {
+            ImportResult {
+                success: true,
+                message: format!("Imported {} skills", success_count),
+                blocked: false,
+            }
+        } else {
+            ImportResult {
+                success: success_count > 0,
+                message: format!("Imported {} skills, {} errors: {}", success_count, errors.len(), errors.join("; ")),
+                blocked: false,
+            }
         }
     }).await.map_err(|e| e.to_string())?;
 
@@ -1750,6 +1856,295 @@ async fn cleanup_temp_import(temp_path: String) -> Result<(), String> {
     }
     fs::remove_dir_all(&path).map_err(|e| format!("Failed to cleanup: {}", e))?;
     Ok(())
+}
+
+// --- Custom Sources: Storage Helpers ---
+
+fn load_custom_sources() -> Result<Vec<CustomSource>, String> {
+    let dir = get_custom_data_dir()?;
+    let path = dir.join("custom-sources.json");
+    if !path.exists() {
+        return Ok(vec![]);
+    }
+    let content = fs::read_to_string(&path)
+        .map_err(|e| format!("Failed to read custom-sources.json: {}", e))?;
+    serde_json::from_str(&content)
+        .map_err(|e| format!("Failed to parse custom-sources.json: {}", e))
+}
+
+fn save_custom_sources(sources: &[CustomSource]) -> Result<(), String> {
+    let dir = get_custom_data_dir()?;
+    let path = dir.join("custom-sources.json");
+    let content = serde_json::to_string_pretty(sources)
+        .map_err(|e| format!("Failed to serialize: {}", e))?;
+    fs::write(&path, content)
+        .map_err(|e| format!("Failed to write custom-sources.json: {}", e))
+}
+
+fn load_custom_marketplace() -> Result<Vec<CustomMarketplaceSkill>, String> {
+    let dir = get_custom_data_dir()?;
+    let path = dir.join("custom-marketplace.json");
+    if !path.exists() {
+        return Ok(vec![]);
+    }
+    let content = fs::read_to_string(&path)
+        .map_err(|e| format!("Failed to read custom-marketplace.json: {}", e))?;
+    serde_json::from_str(&content)
+        .map_err(|e| format!("Failed to parse custom-marketplace.json: {}", e))
+}
+
+fn save_custom_marketplace(skills: &[CustomMarketplaceSkill]) -> Result<(), String> {
+    let dir = get_custom_data_dir()?;
+    let path = dir.join("custom-marketplace.json");
+    let content = serde_json::to_string_pretty(skills)
+        .map_err(|e| format!("Failed to serialize: {}", e))?;
+    fs::write(&path, content)
+        .map_err(|e| format!("Failed to write custom-marketplace.json: {}", e))
+}
+
+fn extract_owner_repo(url: &str) -> Result<(String, String), String> {
+    let url = url.trim_end_matches('/');
+    let parts: Vec<&str> = url.split('/').collect();
+    // https://github.com/owner/repo or with /tree/...
+    if parts.len() < 5 {
+        return Err("Cannot extract owner/repo from URL".to_string());
+    }
+    Ok((parts[3].to_string(), parts[4].to_string()))
+}
+
+fn generate_source_id() -> String {
+    format!("{:x}", current_timestamp())
+}
+
+// T1.2: add_custom_source
+#[tauri::command(async)]
+async fn add_custom_source(url: String) -> Result<CustomSource, String> {
+    let url_clone = url.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let parsed = parse_github_url(&url_clone)?;
+        let (owner, repo) = extract_owner_repo(&url_clone)?;
+
+        // Check duplicate
+        let existing = load_custom_sources()?;
+        if existing.iter().any(|s| s.owner == owner && s.repo == repo && s.subpath == parsed.subpath) {
+            return Err("Source already exists".to_string());
+        }
+
+        let data_dir = get_custom_data_dir()?;
+        let temp_dir = data_dir.join(format!(".temp_scan_{}", current_timestamp()));
+        fs::create_dir_all(&temp_dir)
+            .map_err(|e| format!("Failed to create temp dir: {}", e))?;
+
+        // Clone repo
+        let branch = if parsed.branch.is_empty() { "main".to_string() } else { parsed.branch.clone() };
+        if parsed.has_subpath && !parsed.subpath.is_empty() {
+            let output = Command::new("git")
+                .args(["clone", "--depth", "1", "--filter=blob:none", "--sparse",
+                       &parsed.repo_base, temp_dir.to_str().unwrap()])
+                .output()
+                .map_err(|e| format!("Git failed: {}", e))?;
+            if !output.status.success() {
+                let _ = fs::remove_dir_all(&temp_dir);
+                return Err(format!("Git clone failed: {}", String::from_utf8_lossy(&output.stderr)));
+            }
+            let sparse = Command::new("git")
+                .current_dir(&temp_dir)
+                .args(["sparse-checkout", "set", &parsed.subpath])
+                .output()
+                .map_err(|e| format!("Sparse checkout failed: {}", e))?;
+            if !sparse.status.success() {
+                let _ = fs::remove_dir_all(&temp_dir);
+                return Err(format!("Sparse checkout failed: {}", String::from_utf8_lossy(&sparse.stderr)));
+            }
+            let co = Command::new("git")
+                .current_dir(&temp_dir)
+                .args(["checkout", &branch])
+                .output()
+                .map_err(|e| format!("Checkout failed: {}", e))?;
+            if !co.status.success() {
+                let _ = fs::remove_dir_all(&temp_dir);
+                return Err(format!("Checkout failed: {}", String::from_utf8_lossy(&co.stderr)));
+            }
+        } else {
+            let output = Command::new("git")
+                .args(["clone", "--depth", "1", &parsed.repo_base, temp_dir.to_str().unwrap()])
+                .output()
+                .map_err(|e| format!("Git failed: {}", e))?;
+            if !output.status.success() {
+                let _ = fs::remove_dir_all(&temp_dir);
+                return Err(format!("Git clone failed: {}", String::from_utf8_lossy(&output.stderr)));
+            }
+        }
+
+        // Get commit hash
+        let hash_output = Command::new("git")
+            .current_dir(&temp_dir)
+            .args(["rev-parse", "HEAD"])
+            .output()
+            .map_err(|e| format!("Git rev-parse failed: {}", e))?;
+        let commit_hash = String::from_utf8_lossy(&hash_output.stdout).trim().to_string();
+
+        // Scan for SKILL.md
+        let scan_root = if parsed.has_subpath && !parsed.subpath.is_empty() {
+            temp_dir.join(&parsed.subpath)
+        } else {
+            temp_dir.clone()
+        };
+
+        let mut discovered: Vec<CustomMarketplaceSkill> = Vec::new();
+        let source_id = generate_source_id();
+        for entry in WalkDir::new(&scan_root).max_depth(5) {
+            if let Ok(entry) = entry {
+                let path = entry.path();
+                if path.file_name().map(|n| n == "SKILL.md").unwrap_or(false) {
+                    if let Some(skill_info) = parse_skill_md(&path.to_path_buf(), "custom") {
+                        let relative_path = path.parent().unwrap()
+                            .strip_prefix(&temp_dir).unwrap_or(path.parent().unwrap());
+                        discovered.push(CustomMarketplaceSkill {
+                            id: format!("{}/{}/{}", owner, repo, skill_info.name),
+                            name: skill_info.name,
+                            author: owner.clone(),
+                            author_avatar: format!("https://github.com/{}.png", owner),
+                            description: skill_info.description,
+                            github_url: format!("https://github.com/{}/{}/tree/{}/{}",
+                                owner, repo, branch, relative_path.to_string_lossy()),
+                            stars: 0,
+                            forks: 0,
+                            updated_at: current_timestamp(),
+                            path: relative_path.to_string_lossy().to_string(),
+                            branch: branch.clone(),
+                            source_id: source_id.clone(),
+                        });
+                    }
+                }
+            }
+        }
+
+        // Cleanup temp clone
+        let _ = fs::remove_dir_all(&temp_dir);
+
+        // Fetch GitHub metadata via curl (avoid reqwest::blocking + tokio conflict)
+        let api_url = format!("https://api.github.com/repos/{}/{}", owner, repo);
+        let (stars, forks) = {
+            let curl_output = Command::new("curl")
+                .args(["-s", "-H", "Accept: application/vnd.github.v3+json", &api_url])
+                .output();
+            match curl_output {
+                Ok(output) if output.status.success() => {
+                    let body = String::from_utf8_lossy(&output.stdout);
+                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
+                        let s = json.get("stargazers_count").and_then(|v| v.as_u64()).unwrap_or(0);
+                        let f = json.get("forks_count").and_then(|v| v.as_u64()).unwrap_or(0);
+                        (s, f)
+                    } else {
+                        (0u64, 0u64)
+                    }
+                }
+                _ => (0u64, 0u64),
+            }
+        };
+
+        // Update stars/forks in discovered skills
+        for skill in discovered.iter_mut() {
+            skill.stars = stars;
+            skill.forks = forks;
+        }
+
+        let now = current_timestamp();
+        let source = CustomSource {
+            id: source_id,
+            url: url_clone,
+            owner,
+            repo,
+            subpath: parsed.subpath,
+            branch,
+            added_at: now,
+            last_sync_at: now,
+            last_commit_hash: commit_hash,
+            skill_count: discovered.len(),
+            status: SourceStatus::Synced,
+        };
+
+        // Save
+        let mut sources = load_custom_sources()?;
+        sources.push(source.clone());
+        save_custom_sources(&sources)?;
+
+        let mut marketplace = load_custom_marketplace()?;
+        marketplace.extend(discovered);
+        save_custom_marketplace(&marketplace)?;
+
+        Ok(source)
+    }).await.map_err(|e| e.to_string())?;
+
+    result
+}
+
+// T1.3: get_custom_sources + get_custom_marketplace
+#[tauri::command(async)]
+async fn get_custom_sources() -> Result<Vec<CustomSource>, String> {
+    load_custom_sources()
+}
+
+#[tauri::command(async)]
+async fn get_custom_marketplace() -> Result<Vec<CustomMarketplaceSkill>, String> {
+    load_custom_marketplace()
+}
+
+// T1.4: remove_custom_source
+#[tauri::command(async)]
+async fn remove_custom_source(id: String) -> Result<(), String> {
+    let mut sources = load_custom_sources()?;
+    sources.retain(|s| s.id != id);
+    save_custom_sources(&sources)?;
+
+    let mut marketplace = load_custom_marketplace()?;
+    marketplace.retain(|s| s.source_id != id);
+    save_custom_marketplace(&marketplace)?;
+
+    Ok(())
+}
+
+// T1.5: refresh_custom_source
+#[tauri::command(async)]
+async fn refresh_custom_source(id: Option<String>) -> Result<Vec<CustomSource>, String> {
+    let sources = load_custom_sources()?;
+    let targets: Vec<&CustomSource> = match &id {
+        Some(id) => sources.iter().filter(|s| s.id == *id).collect(),
+        None => sources.iter().collect(),
+    };
+
+    let mut updated_ids: Vec<String> = Vec::new();
+
+    for source in targets {
+        let repo_url = format!("https://github.com/{}/{}", source.owner, source.repo);
+        let hash_check = Command::new("git")
+            .args(["ls-remote", &repo_url, "HEAD"])
+            .output();
+
+        if let Ok(output) = hash_check {
+            let remote_line = String::from_utf8_lossy(&output.stdout);
+            let remote_hash = remote_line.split_whitespace().next().unwrap_or("").to_string();
+            if !remote_hash.is_empty() && remote_hash != source.last_commit_hash {
+                // Re-index by calling add flow
+                if let Ok(new_source) = add_custom_source(source.url.clone()).await {
+                    // add_custom_source will fail with "already exists" — so we remove first
+                    let _ = remove_custom_source(source.id.clone()).await;
+                    let _ = add_custom_source(source.url.clone()).await;
+                    updated_ids.push(source.id.clone());
+                    let _ = new_source; // suppress unused
+                } else {
+                    // Remove and re-add
+                    let _ = remove_custom_source(source.id.clone()).await;
+                    let _ = add_custom_source(source.url.clone()).await;
+                    updated_ids.push(source.id.clone());
+                }
+            }
+        }
+    }
+
+    load_custom_sources()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -1779,7 +2174,12 @@ pub fn run() {
             create_all_symlinks,
             remove_symlink,
             get_platform_info,
-            cleanup_temp_import
+            cleanup_temp_import,
+            add_custom_source,
+            get_custom_sources,
+            get_custom_marketplace,
+            remove_custom_source,
+            refresh_custom_source
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSkillStore } from '../store/useSkillStore';
-import { Download, Star, ExternalLink, Check, Loader2, Shield, ShieldCheck, ShieldAlert, X, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Package, RefreshCw } from 'lucide-react';
+import { Download, Star, ExternalLink, Check, Loader2, Shield, ShieldCheck, ShieldAlert, X, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Package, RefreshCw, GitFork } from 'lucide-react';
 import { SearchBox } from '../components/ui/SearchBox';
 import { StickyHeader } from '../components/ui/StickyHeader';
 import { InstallLevelPicker, type InstallLevel } from '../components/ui/InstallLevelPicker';
 import { getLocalizedDescription } from '../utils/i18n';
 import { invoke } from '@tauri-apps/api/core';
 import { motion, AnimatePresence } from 'framer-motion';
+import CustomSourcesTab from '../components/marketplace/CustomSourcesTab';
 
 interface SecurityReport {
   skillId: string;
@@ -104,7 +105,8 @@ const Marketplace = () => {
     defaultInstallLocation,
     projectPaths,
     selectedProjectIndex,
-    setSelectedProjectIndex
+    setSelectedProjectIndex,
+    customSources,
   } = useSkillStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
@@ -124,6 +126,7 @@ const Marketplace = () => {
     type: 'info'
   });
   const pageSize = 12;
+  const [activeTab, setActiveTab] = useState<'official' | 'custom'>('official');
 
   useEffect(() => {
     if (marketplaceSkills.length === 0) {
@@ -510,6 +513,44 @@ const Marketplace = () => {
         </div>
       </div>
       </StickyHeader>
+
+      {/* Tab Switcher */}
+      <div className="flex items-center gap-1 p-1 bg-gray-100/80 dark:bg-white/5 rounded-xl w-fit mb-6">
+        <button
+          onClick={() => { setActiveTab('official'); if (batchMode) { setBatchMode(false); clearBatchSelect(); } }}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+            activeTab === 'official'
+              ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+          }`}
+        >
+          <Sparkles size={14} />
+          {t('officialMarketplace')}
+        </button>
+        <button
+          onClick={() => { setActiveTab('custom'); if (batchMode) { setBatchMode(false); clearBatchSelect(); } }}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+            activeTab === 'custom'
+              ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+          }`}
+        >
+          <GitFork size={14} />
+          {t('customSources')}
+          {customSources.length > 0 && (
+            <span className="ml-1 px-1.5 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] font-semibold">
+              {customSources.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'custom' ? (
+        <CustomSourcesTab />
+      ) : (
+        <>
+
 
       {/* Batch Action Bar */}
       <AnimatePresence>
@@ -908,6 +949,8 @@ const Marketplace = () => {
           </div>
         )}
       </AnimatePresence>
+      </>
+      )}
     </div>
   );
 };

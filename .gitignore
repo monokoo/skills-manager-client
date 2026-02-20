@@ -41,6 +41,7 @@ manus/
 Skill Manager.app
 *.exe
 *.dmg
-docs/PLAN-*.md
+docs/plans/
+.test_sparse/
 docs/images/*
 src-tauri/~/
