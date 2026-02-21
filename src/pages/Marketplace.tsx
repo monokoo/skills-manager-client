@@ -934,9 +934,10 @@ const Marketplace = () => {
                 </button>
                 <button
                   onClick={() => {
-                    const overridePath = installLevel === 'project' && projectPaths.length > 0
+                    const projectRoot = installLevel === 'project' && projectPaths.length > 0
                       ? (projectPaths[selectedProjectIndex] || projectPaths[0])
                       : undefined;
+                    const overridePath = projectRoot ? `${projectRoot}/.claude/skills` : undefined;
                     handleInstall(installTarget, overridePath);
                   }}
                   className="px-5 py-2 text-sm font-bold text-white bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all flex items-center gap-2"
@@ -1013,9 +1014,10 @@ const Marketplace = () => {
                 </button>
                 <button
                   onClick={() => {
-                    const overridePath = installLevel === 'project' && projectPaths.length > 0
+                    const projectRoot = installLevel === 'project' && projectPaths.length > 0
                       ? (projectPaths[selectedProjectIndex] || projectPaths[0])
                       : undefined;
+                    const overridePath = projectRoot ? `${projectRoot}/.claude/skills` : undefined;
                     handleBatchInstall(overridePath);
                   }}
                   className="px-5 py-2 text-sm font-bold text-white bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all flex items-center gap-2"

@@ -350,7 +350,8 @@ export const useSkillStore = create<SkillStore>()(
         let installPath = overrideInstallPath;
         if (!installPath && defaultInstallLocation === 'project') {
           if (projectPaths.length > 0) {
-            installPath = projectPaths[selectedProjectIndex] || projectPaths[0];
+            const projectRoot = projectPaths[selectedProjectIndex] || projectPaths[0];
+            installPath = `${projectRoot}/.claude/skills`;
           } else {
             console.warn('No project paths configured, installing to system directory');
           }
@@ -445,7 +446,8 @@ export const useSkillStore = create<SkillStore>()(
 
         let finalInstallPath = installPath;
         if (!finalInstallPath && defaultInstallLocation === 'project' && projectPaths.length > 0) {
-          finalInstallPath = projectPaths[selectedProjectIndex] || projectPaths[0];
+          const projectRoot = projectPaths[selectedProjectIndex] || projectPaths[0];
+          finalInstallPath = `${projectRoot}/.claude/skills`;
         }
 
         console.log(`[Store] Importing from GitHub: ${url}, installPath: ${finalInstallPath || 'default'}`);
@@ -567,7 +569,8 @@ export const useSkillStore = create<SkillStore>()(
 
         let finalInstallPath = installPath;
         if (!finalInstallPath && defaultInstallLocation === 'project' && projectPaths.length > 0) {
-          finalInstallPath = projectPaths[selectedProjectIndex] || projectPaths[0];
+          const projectRoot = projectPaths[selectedProjectIndex] || projectPaths[0];
+          finalInstallPath = `${projectRoot}/.claude/skills`;
         }
 
         console.log(`[Store] Importing from local: ${sourcePath}, installPath: ${finalInstallPath || 'default'}`);
@@ -829,9 +832,10 @@ export const useSkillStore = create<SkillStore>()(
         set({ isSyncingSource: 'adding' });
         try {
           const source = await invoke<CustomSource>('add_custom_source', { url });
-          const { customSources } = get();
-          set({ customSources: [...customSources, source], isSyncingSource: null });
+          // Fetch from backend instead of optimistic append to avoid duplicates
+          await get().fetchCustomSources();
           await get().fetchCustomMarketplace();
+          set({ isSyncingSource: null });
           return source;
         } catch (error) {
           set({ isSyncingSource: null });

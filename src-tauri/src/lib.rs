@@ -2066,12 +2066,18 @@ async fn add_custom_source(url: String) -> Result<CustomSource, String> {
             status: SourceStatus::Synced,
         };
 
-        // Save
+        // Save — re-check uniqueness and deduplicate before writing
         let mut sources = load_custom_sources()?;
+        let src_owner = source.owner.clone();
+        let src_repo = source.repo.clone();
+        let src_subpath = source.subpath.clone();
+        sources.retain(|s| !(s.owner == src_owner && s.repo == src_repo && s.subpath == src_subpath));
         sources.push(source.clone());
         save_custom_sources(&sources)?;
 
         let mut marketplace = load_custom_marketplace()?;
+        // Clean old marketplace skills belonging to the replaced source (if any)
+        marketplace.retain(|s| !(s.author == src_owner && discovered.iter().any(|d| d.name == s.name && d.source_id != s.source_id)));
         marketplace.extend(discovered);
         save_custom_marketplace(&marketplace)?;
 
@@ -2127,18 +2133,23 @@ async fn refresh_custom_source(id: Option<String>) -> Result<Vec<CustomSource>, 
             let remote_line = String::from_utf8_lossy(&output.stdout);
             let remote_hash = remote_line.split_whitespace().next().unwrap_or("").to_string();
             if !remote_hash.is_empty() && remote_hash != source.last_commit_hash {
-                // Re-index by calling add flow
-                if let Ok(new_source) = add_custom_source(source.url.clone()).await {
-                    // add_custom_source will fail with "already exists" — so we remove first
-                    let _ = remove_custom_source(source.id.clone()).await;
-                    let _ = add_custom_source(source.url.clone()).await;
-                    updated_ids.push(source.id.clone());
-                    let _ = new_source; // suppress unused
-                } else {
-                    // Remove and re-add
-                    let _ = remove_custom_source(source.id.clone()).await;
-                    let _ = add_custom_source(source.url.clone()).await;
-                    updated_ids.push(source.id.clone());
+                // Atomic re-index: remove first, then add once
+                let url = source.url.clone();
+                let old_id = source.id.clone();
+                let backup = source.clone();
+                let _ = remove_custom_source(old_id.clone()).await;
+                match add_custom_source(url).await {
+                    Ok(_) => {
+                        updated_ids.push(old_id);
+                    }
+                    Err(e) => {
+                        eprintln!("[refresh_custom_source] re-add failed for {}: {}, restoring backup", old_id, e);
+                        // Restore the old source to prevent data loss
+                        if let Ok(mut srcs) = load_custom_sources() {
+                            srcs.push(backup);
+                            let _ = save_custom_sources(&srcs);
+                        }
+                    }
                 }
             }
         }
