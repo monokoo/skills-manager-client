@@ -2147,6 +2147,44 @@ async fn refresh_custom_source(id: Option<String>) -> Result<Vec<CustomSource>, 
     load_custom_sources()
 }
 
+// skills.sh search proxy — bypasses CORS restriction in webview
+#[tauri::command(async)]
+async fn search_skills_sh(query: String) -> Result<serde_json::Value, String> {
+    let result = tokio::task::spawn_blocking(move || {
+        let url = format!("https://skills.sh/api/search?q={}", urlencoding(&query));
+        let output = Command::new("curl")
+            .args(["-s", "-m", "10", &url])
+            .output()
+            .map_err(|e| format!("curl failed: {}", e))?;
+
+        if !output.status.success() {
+            return Err(format!("curl returned status: {}", output.status));
+        }
+
+        let body = String::from_utf8_lossy(&output.stdout);
+        serde_json::from_str::<serde_json::Value>(&body)
+            .map_err(|e| format!("JSON parse error: {}", e))
+    }).await.map_err(|e| e.to_string())??;
+
+    Ok(result)
+}
+
+// Simple percent-encoding for URL query parameters
+fn urlencoding(input: &str) -> String {
+    let mut result = String::with_capacity(input.len() * 3);
+    for byte in input.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                result.push(byte as char);
+            }
+            _ => {
+                result.push_str(&format!("%{:02X}", byte));
+            }
+        }
+    }
+    result
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -2179,7 +2217,8 @@ pub fn run() {
             get_custom_sources,
             get_custom_marketplace,
             remove_custom_source,
-            refresh_custom_source
+            refresh_custom_source,
+            search_skills_sh
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -289,6 +289,23 @@ const resources = {
       confirmRemoveSource: "Remove this source? Associated Skills will also be removed.",
       sourceAlreadyExists: "This source already exists",
 
+      // Source Filter
+      sourceFilter: "Source",
+      sourceAll: "All",
+      sourceOfficial: "Official",
+      sourceCustom: "Custom",
+      sourceComingSoon: "Coming Soon",
+      noDataSources: "No data sources available",
+      noDataSourcesHint: "Enable official source or add custom sources in Settings",
+      goToSettings: "Go to Settings",
+
+      // Settings - Data Source
+      dataSourceManagement: "Data Source Management",
+      officialSourceToggle: "Official Marketplace Source",
+      officialSourceDesc: "Enable to aggregate official Skills in the Marketplace",
+      showSourceBadge: "Show Source Badges",
+      showSourceBadgeDesc: "Display source origin badges on Skill cards",
+
       // Settings Detail
       adminRequired: "Admin required",
       nativeAgents: "Native Compatible Agents",
@@ -603,6 +620,23 @@ const resources = {
       retryIndex: "重试",
       confirmRemoveSource: "删除该源？关联的 Skills 也会被移除。",
       sourceAlreadyExists: "该源已存在",
+
+      // 来源筛选
+      sourceFilter: "来源",
+      sourceAll: "全部",
+      sourceOfficial: "官方",
+      sourceCustom: "自定义源",
+      sourceComingSoon: "即将推出",
+      noDataSources: "暂无可用数据源",
+      noDataSourcesHint: "请在设置中启用官方源或添加自定义源",
+      goToSettings: "前往设置",
+
+      // 设置 - 数据源
+      dataSourceManagement: "数据源管理",
+      officialSourceToggle: "官方市场数据源",
+      officialSourceDesc: "启用后将在市场页面聚合显示官方数据源中的 Skills",
+      showSourceBadge: "显示来源标签",
+      showSourceBadgeDesc: "在 Skill 卡片上显示数据源来源标签",
 
       // 设置详情
       adminRequired: "需管理员权限",

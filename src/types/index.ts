@@ -13,6 +13,8 @@ export interface MarketplaceSkill {
   hasMarketplace: boolean;
   path: string;
   branch: string;
+  sourceType?: 'official' | 'custom' | 'skillssh';
+  installs?: number;
 }
 
 export interface InstalledSkill extends Partial<MarketplaceSkill> {
@@ -120,4 +122,6 @@ export interface CustomMarketplaceSkill {
   path: string;
   branch: string;
   sourceId: string;
+  sourceType?: 'official' | 'custom' | 'skillssh';
+  installs?: number;
 }

@@ -144,6 +144,14 @@ interface SkillStore {
   addCustomSource: (url: string) => Promise<CustomSource>;
   removeCustomSource: (id: string) => Promise<void>;
   refreshCustomSource: (id?: string) => Promise<void>;
+
+  // 数据源聚合 State
+  officialSourceEnabled: boolean;
+  showSourceBadge: boolean;
+
+  // 数据源聚合 Actions
+  setOfficialSourceEnabled: (enabled: boolean) => void;
+  setShowSourceBadge: (enabled: boolean) => void;
 }
 
 export const useSkillStore = create<SkillStore>()(
@@ -182,6 +190,10 @@ export const useSkillStore = create<SkillStore>()(
       customMarketplaceSkills: [],
       isLoadingCustom: false,
       isSyncingSource: null,
+
+      // 数据源聚合
+      officialSourceEnabled: true,
+      showSourceBadge: true,
 
       setDefaultInstallLocation: (location: 'system' | 'project') => {
         set({ defaultInstallLocation: location });
@@ -279,7 +291,8 @@ export const useSkillStore = create<SkillStore>()(
           const response = await fetch('/data/marketplace.json');
           if (!response.ok) throw new Error('Failed to load marketplace data');
           const data = await response.json();
-          set({ marketplaceSkills: data, isLoading: false });
+          const tagged = data.map((s: any) => ({ ...s, sourceType: 'official' as const }));
+          set({ marketplaceSkills: tagged, isLoading: false });
         } catch (error) {
           console.error('Error loading marketplace:', error);
           set({ isLoading: false });
@@ -805,7 +818,8 @@ export const useSkillStore = create<SkillStore>()(
       fetchCustomMarketplace: async () => {
         try {
           const skills = await invoke<CustomMarketplaceSkill[]>('get_custom_marketplace');
-          set({ customMarketplaceSkills: skills });
+          const tagged = skills.map(s => ({ ...s, sourceType: 'custom' as const }));
+          set({ customMarketplaceSkills: tagged });
         } catch (error) {
           console.error('Failed to fetch custom marketplace:', error);
         }
@@ -850,6 +864,15 @@ export const useSkillStore = create<SkillStore>()(
           set({ isSyncingSource: null });
         }
       },
+
+      // --- 数据源聚合 Actions ---
+      setOfficialSourceEnabled: (enabled: boolean) => {
+        set({ officialSourceEnabled: enabled });
+      },
+
+      setShowSourceBadge: (enabled: boolean) => {
+        set({ showSourceBadge: enabled });
+      },
     }),
     {
       name: 'skill-manager-storage',
@@ -857,7 +880,9 @@ export const useSkillStore = create<SkillStore>()(
         projectPaths: state.projectPaths,
         defaultInstallLocation: state.defaultInstallLocation,
         selectedProjectIndex: state.selectedProjectIndex,
-        customSymlinks: state.customSymlinks
+        customSymlinks: state.customSymlinks,
+        officialSourceEnabled: state.officialSourceEnabled,
+        showSourceBadge: state.showSourceBadge,
       }),
     }
   )

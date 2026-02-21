@@ -9,6 +9,10 @@ import { getLocalizedDescription } from '../utils/i18n';
 import { invoke } from '@tauri-apps/api/core';
 import { motion, AnimatePresence } from 'framer-motion';
 import CustomSourcesTab from '../components/marketplace/CustomSourcesTab';
+import SourceFilterDropdown, { type SourceFilter } from '../components/marketplace/SourceFilterDropdown';
+import SkillDetailDrawer from '../components/marketplace/SkillDetailDrawer';
+import { useSkillsShSearch } from '../hooks/useSkillsShSearch';
+import type { MarketplaceSkill, CustomMarketplaceSkill } from '../types';
 
 interface SecurityReport {
   skillId: string;
@@ -107,6 +111,10 @@ const Marketplace = () => {
     selectedProjectIndex,
     setSelectedProjectIndex,
     customSources,
+    customMarketplaceSkills,
+    fetchCustomMarketplace,
+    officialSourceEnabled,
+    showSourceBadge,
   } = useSkillStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
@@ -127,12 +135,31 @@ const Marketplace = () => {
   });
   const pageSize = 12;
   const [activeTab, setActiveTab] = useState<'official' | 'custom'>('official');
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
+  // skills.sh search via Hook (HMR-safe, auto-debounce, auto-cancel)
+  const { results: skillsShResults, isSearching: isSearchingSkillsSh } = useSkillsShSearch(
+    searchTerm,
+    sourceFilter === 'skillssh'
+  );
+  // Drawer state
+  const [selectedSkill, setSelectedSkill] = useState<MarketplaceSkill | null>(null);
 
   useEffect(() => {
-    if (marketplaceSkills.length === 0) {
-        fetchMarketplaceSkills();
-    }
+    const loadData = async () => {
+      const promises: Promise<void>[] = [];
+      if (marketplaceSkills.length === 0) promises.push(fetchMarketplaceSkills());
+      promises.push(fetchCustomMarketplace());
+      await Promise.allSettled(promises);
+    };
+    loadData();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset sourceFilter when official source is disabled
+  useEffect(() => {
+    if (!officialSourceEnabled && sourceFilter === 'official') {
+      setSourceFilter('all');
+    }
+  }, [officialSourceEnabled, sourceFilter]);
 
   const toggleBatchSelect = (skillId: string) => {
     setBatchSelectedSkills(prev =>
@@ -345,7 +372,43 @@ const Marketplace = () => {
     );
   };
 
-  const filteredSkills = marketplaceSkills.filter(skill =>
+  const mapCustomToMarketplace = (skill: CustomMarketplaceSkill): MarketplaceSkill => ({
+    id: `custom-${skill.sourceId}-${skill.name}`,
+    name: skill.name,
+    author: skill.author,
+    authorAvatar: skill.authorAvatar,
+    description: skill.description,
+    githubUrl: skill.githubUrl,
+    stars: skill.stars ?? 0,
+    forks: skill.forks ?? 0,
+    updatedAt: skill.updatedAt,
+    hasMarketplace: false,
+    path: skill.path,
+    branch: skill.branch,
+    sourceType: 'custom',
+    installs: skill.installs,
+  });
+
+  const getAggregatedSkills = (): MarketplaceSkill[] => {
+    switch (sourceFilter) {
+      case 'official':
+        return officialSourceEnabled ? marketplaceSkills : [];
+      case 'custom':
+        return customMarketplaceSkills.map(mapCustomToMarketplace);
+      case 'skillssh':
+        return skillsShResults;
+      case 'all':
+      default: {
+        const official = officialSourceEnabled ? marketplaceSkills : [];
+        const custom = customMarketplaceSkills.map(mapCustomToMarketplace);
+        return [...official, ...custom];
+      }
+    }
+  };
+
+  const aggregatedSkills = getAggregatedSkills();
+
+  const filteredSkills = aggregatedSkills.filter(skill =>
     skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     skill.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
     skill.author.toLowerCase().includes(searchTerm.toLowerCase())
@@ -397,11 +460,6 @@ const Marketplace = () => {
     }
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return 'text-success';
-    if (score >= 70) return 'text-warning';
-    return 'text-error';
-  };
 
   return (
     <div>
@@ -468,8 +526,8 @@ const Marketplace = () => {
             {t('marketplaceDesc')}
           </p>
           <div className="flex items-center gap-3 mt-2">
-            <span className="stat-badge bg-primary/10 text-primary">
-              {t('marketplaceSkillsCount', { count: marketplaceSkills.length })}
+             <span className="stat-badge bg-primary/10 text-primary">
+              {t('marketplaceSkillsCount', { count: aggregatedSkills.length })}
             </span>
             <span className="stat-badge bg-success/10 text-success">
               {t('installedCount', { count: installedSkills.length })}
@@ -499,7 +557,15 @@ const Marketplace = () => {
             {t('batchMode')}
           </button>
 
-          {/* Search */}
+          {/* Source Filter + Search */}
+          <SourceFilterDropdown
+            value={sourceFilter}
+            onChange={(val) => {
+              setSourceFilter(val);
+              setPage(1);
+            }}
+            officialEnabled={officialSourceEnabled}
+          />
           <SearchBox
             value={searchTerm}
             onChange={(val) => {
@@ -573,10 +639,12 @@ const Marketplace = () => {
         )}
       </AnimatePresence>
 
-      {isLoading && (
+      {(isLoading || isSearchingSkillsSh) && (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <span className="loading loading-spinner loading-lg text-primary"></span>
-          <p className="text-base-content/60">{t('loadingSkills')}</p>
+          <p className="text-base-content/60">
+            {isSearchingSkillsSh ? t('searchingSkillsSh', { defaultValue: '正在搜索 skills.sh...' }) : t('loadingSkills')}
+          </p>
         </div>
       )}
 
@@ -600,6 +668,8 @@ const Marketplace = () => {
                   onClick={() => {
                     if (batchMode && !installed) {
                       toggleBatchSelect(skill.id);
+                    } else if (!batchMode) {
+                      setSelectedSkill(skill);
                     }
                   }}
                 >
@@ -634,6 +704,15 @@ const Marketplace = () => {
                           <Star size={10} fill="currentColor" />
                           {skill.stars.toLocaleString()}
                         </span>
+                        {showSourceBadge && skill.sourceType && skill.sourceType !== 'official' && (
+                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                            skill.sourceType === 'custom'
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                              : 'bg-sky-500/10 text-sky-600 dark:text-sky-400'
+                          }`}>
+                            {skill.sourceType === 'custom' ? t('sourceCustom') : 'skills.sh'}
+                          </span>
+                        )}
                         <div className="flex items-center gap-2">
                           <img src={skill.authorAvatar} alt={skill.author} className="w-5 h-5 rounded-full ring-1 ring-base-200" />
                           <span className="text-[10px] font-bold text-gray-400">{skill.author}</span>
@@ -951,6 +1030,15 @@ const Marketplace = () => {
       </AnimatePresence>
       </>
       )}
+
+      {/* Skill Detail Drawer */}
+      <SkillDetailDrawer
+        skill={selectedSkill}
+        isOpen={selectedSkill !== null}
+        onClose={() => setSelectedSkill(null)}
+        onInstall={(s) => { setSelectedSkill(null); openInstallConfirm(s); }}
+        isInstalled={selectedSkill ? isInstalled(selectedSkill.id, selectedSkill.name) : false}
+      />
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSkillStore } from '../store/useSkillStore';
-import { Plus, X, FolderOpen, ExternalLink, Package, Check, Cpu, Settings2, Palette, AlertTriangle, Globe, Link2, Link2Off, RefreshCw, Monitor, CheckCircle2, Github, Heart, MessageCircle, Terminal } from 'lucide-react';
+import { Plus, X, FolderOpen, ExternalLink, Package, Check, Cpu, Settings2, Palette, AlertTriangle, Globe, Link2, Link2Off, RefreshCw, Monitor, CheckCircle2, Github, Heart, MessageCircle, Terminal, Database } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 
 const agentColors: Record<string, string> = {
@@ -38,7 +38,11 @@ const Settings = () => {
     createSymlink,
     createAllSymlinks,
     removeSymlink,
-    getPlatformInfo
+    getPlatformInfo,
+    officialSourceEnabled,
+    showSourceBadge,
+    setOfficialSourceEnabled,
+    setShowSourceBadge,
   } = useSkillStore();
   const [paths, setPaths] = useState<string[]>([]);
   const [newPath, setNewPath] = useState('');
@@ -51,6 +55,7 @@ const Settings = () => {
     symlink: true,
     install: false,
     paths: false,
+    dataSource: false,
     appearance: false,
   });
 
@@ -536,6 +541,56 @@ const Settings = () => {
                   <Plus size={16} />
                   {t('add')}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Data Source Management */}
+        <div className="collapse collapse-arrow bg-white dark:bg-white/5 rounded-2xl border border-gray-200/60 dark:border-white/10">
+          <input
+            type="checkbox"
+            checked={expandedSections.dataSource}
+            onChange={() => toggleSection('dataSource')}
+          />
+          <div className="collapse-title pr-12">
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 bg-blue-500/10 rounded-lg">
+                <Database size={16} className="text-blue-500" />
+              </div>
+              <span className="font-semibold">
+                {t('dataSourceManagement')}
+              </span>
+            </div>
+          </div>
+          <div className="collapse-content">
+            <div className="pt-2 space-y-3">
+              {/* Official Source Toggle */}
+              <div className="flex items-center justify-between p-3 bg-base-100 rounded-xl">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm">{t('officialSourceToggle')}</div>
+                  <p className="text-xs text-base-content/50 mt-0.5">{t('officialSourceDesc')}</p>
+                </div>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary toggle-sm ml-4"
+                  checked={officialSourceEnabled}
+                  onChange={(e) => setOfficialSourceEnabled(e.target.checked)}
+                />
+              </div>
+
+              {/* Show Source Badge Toggle */}
+              <div className="flex items-center justify-between p-3 bg-base-100 rounded-xl">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm">{t('showSourceBadge')}</div>
+                  <p className="text-xs text-base-content/50 mt-0.5">{t('showSourceBadgeDesc')}</p>
+                </div>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary toggle-sm ml-4"
+                  checked={showSourceBadge}
+                  onChange={(e) => setShowSourceBadge(e.target.checked)}
+                />
               </div>
             </div>
           </div>
