@@ -122,11 +122,15 @@ const Marketplace = () => {
   const [batchMode, setBatchMode] = useState(false);
   const [batchSelectedSkills, setBatchSelectedSkills] = useState<string[]>([]);
   // Install confirm modal state
+  const getDefaultProjectIndices = () =>
+    selectedProjectIndex >= 0 && selectedProjectIndex < projectPaths.length
+      ? [selectedProjectIndex]
+      : [];
   const [installTarget, setInstallTarget] = useState<any>(null);
   const [installLevel, setInstallLevel] = useState<InstallLevel>(defaultInstallLocation as InstallLevel || 'system');
   // Batch install confirm
   const [showBatchConfirm, setShowBatchConfirm] = useState(false);
-  const [selectedProjectIndices, setSelectedProjectIndices] = useState<number[]>([selectedProjectIndex]);
+  const [selectedProjectIndices, setSelectedProjectIndices] = useState<number[]>(getDefaultProjectIndices());
   const [installStatus, setInstallStatus] = useState<InstallStatus>({
     show: false,
     phase: 'idle',
@@ -192,6 +196,7 @@ const Marketplace = () => {
     if (installingSkillId) return;
     setInstallTarget(skill);
     setInstallLevel(defaultInstallLocation as InstallLevel || 'system');
+    setSelectedProjectIndices(getDefaultProjectIndices());
   };
 
   const handleInstall = async (skill: any, overridePath?: string) => {
@@ -628,6 +633,7 @@ const Marketplace = () => {
             selectedCount={batchSelectedSkills.length}
             onInstall={() => {
               setInstallLevel(defaultInstallLocation as InstallLevel || 'system');
+              setSelectedProjectIndices(getDefaultProjectIndices());
               setShowBatchConfirm(true);
             }}
             onSelectAll={() => {
