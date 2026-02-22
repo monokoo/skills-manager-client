@@ -8,22 +8,22 @@ import {
 } from 'lucide-react';
 import type { CustomSource } from '../../types';
 
-function formatRelativeTime(ts: number): string {
+function formatRelativeTime(ts: number, t: (key: string, opts?: any) => string): string {
   const now = Date.now();
   const diff = now - ts;
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return t('justNow');
+  if (mins < 60) return t('minutesAgoShort', { count: mins });
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t('hoursAgoShort', { count: hours });
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return t('daysAgoShort', { count: days });
 }
 
 function StatusBadge({ source }: { source: CustomSource }) {
   const { t } = useTranslation();
   const config = {
-    synced: { icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/10', label: 'Synced' },
+    synced: { icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/10', label: t('synced') },
     syncing: { icon: Loader2, color: 'text-blue-500', bg: 'bg-blue-500/10', label: t('syncingSource') },
     error: { icon: AlertCircle, color: 'text-red-500', bg: 'bg-red-500/10', label: t('indexFailed') },
     pending: { icon: Clock, color: 'text-amber-500', bg: 'bg-amber-500/10', label: t('indexing') },
@@ -90,7 +90,7 @@ export default function CustomSourcesTab() {
             {customSources.length} {t('customSources')}
           </span>
           <span className="stat-badge bg-blue-500/10 text-blue-600 dark:text-blue-400">
-            {customMarketplaceSkills.length} Skills
+            {customMarketplaceSkills.length} {t('skillsUnit')}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -186,7 +186,7 @@ export default function CustomSourcesTab() {
                         <span>{t('skillsFound', { count: source.skillCount })}</span>
                         <span className="flex items-center gap-1">
                           <Clock size={11} />
-                          {t('lastSynced')}: {formatRelativeTime(source.lastSyncAt)}
+                          {t('lastSynced')}: {formatRelativeTime(source.lastSyncAt, t)}
                         </span>
                         <span className="font-mono text-[10px] bg-gray-100 dark:bg-white/10 px-1.5 py-0.5 rounded">
                           {source.branch}
@@ -202,7 +202,7 @@ export default function CustomSourcesTab() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn btn-ghost btn-sm btn-circle"
-                      title="Open in GitHub"
+                      title={t('viewSource')}
                     >
                       <ExternalLink size={14} />
                     </a>
@@ -261,7 +261,7 @@ export default function CustomSourcesTab() {
               <div className="p-5 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    GitHub URL
+                    {t('githubUrlLabel')}
                   </label>
                   <input
                     type="url"
@@ -284,7 +284,7 @@ export default function CustomSourcesTab() {
                   )}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                  <p className="font-medium">Supported formats:</p>
+                  <p className="font-medium">{t('supportedFormats')}</p>
                   <code className="block bg-gray-100 dark:bg-white/5 rounded-lg px-3 py-2 text-[11px]">
                     https://github.com/owner/repo<br />
                     https://github.com/owner/repo/tree/main/skills
@@ -293,8 +293,11 @@ export default function CustomSourcesTab() {
               </div>
 
               <div className="flex items-center justify-end gap-3 p-5 border-t border-gray-200/60 dark:border-white/10">
-                <button onClick={() => setShowAddModal(false)} className="btn btn-ghost btn-sm rounded-xl px-4">
-                  Cancel
+                <button onClick={() => setShowAddModal(false)} className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 rounded-xl
+                             border border-gray-200/60 dark:border-white/10
+                             hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white
+                             transition-all">
+                  {t('cancel')}
                 </button>
                 <button
                   onClick={handleAdd}
@@ -345,8 +348,11 @@ export default function CustomSourcesTab() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{t('removeSource')}</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{t('confirmRemoveSource')}</p>
               <div className="flex items-center justify-center gap-3">
-                <button onClick={() => setDeleteConfirm(null)} className="btn btn-ghost btn-sm rounded-xl px-4">
-                  Cancel
+                <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 rounded-xl
+                             border border-gray-200/60 dark:border-white/10
+                             hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white
+                             transition-all">
+                  {t('cancel')}
                 </button>
                 <button
                   onClick={() => handleRemove(deleteConfirm)}

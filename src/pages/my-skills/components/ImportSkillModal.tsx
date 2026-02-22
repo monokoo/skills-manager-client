@@ -30,12 +30,12 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
   isImporting,
   analysisResult,
   projectPaths,
-  selectedProjectIndex,
+  selectedProjectIndices,
   onAnalyzeGitHub,
   onAnalyzeLocal,
   onImport,
   onClearAnalysis,
-  onProjectIndexChange
+  onProjectIndicesChange
 }) => {
   const { t } = useTranslation();
 
@@ -72,7 +72,7 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
       path: importPath,
       selectedPaths: selectedSkillPaths,
       level: importLevel,
-      projectIndex: selectedProjectIndex
+      projectIndices: selectedProjectIndices
     });
   };
 
@@ -99,8 +99,8 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
           {/* Header */}
           <div className="flex justify-between items-center p-6 pb-2">
             <h3 className="font-bold text-xl flex items-center gap-2">
-              {importType === 'github' && <Github size={20} className="text-blue-500" />}
-              {importType === 'local' && <HardDrive size={20} className="text-blue-500" />}
+              {importType === 'github' && <Github size={20} className="text-emerald-500" />}
+              {importType === 'local' && <HardDrive size={20} className="text-emerald-500" />}
               {!importType ? t('importSkill') : importType === 'github' ? t('importFromGitHub') : t('importFromLocal')}
             </h3>
             <button
@@ -142,8 +142,8 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                     rounded-2xl border border-gray-100 dark:border-white/5"
                   onClick={() => setImportType('github')}
                 >
-                  <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-500/20
-                    flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0
+                  <div className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-500/20
+                    flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0
                     group-hover:scale-110 transition-transform">
                     <Github size={24} />
                   </div>
@@ -163,8 +163,8 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                     rounded-2xl border border-gray-100 dark:border-white/5"
                   onClick={() => setImportType('local')}
                 >
-                  <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-500/20
-                    flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0
+                  <div className="w-12 h-12 rounded-xl bg-teal-50 dark:bg-teal-500/20
+                    flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0
                     group-hover:scale-110 transition-transform">
                     <HardDrive size={24} />
                   </div>
@@ -199,7 +199,7 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                         placeholder="https://github.com/username/skill-name"
                         className={`input w-full h-12 pl-4 pr-4 bg-black/5 dark:bg-white/5
                           border-gray-200/60 dark:border-white/10 rounded-2xl
-                          focus:ring-2 focus:ring-blue-500/15 focus:border-blue-500/15
+                          focus:ring-2 focus:ring-emerald-500/15 focus:border-emerald-500/15
                           transition-all duration-300 font-mono text-xs shadow-inner
                           placeholder:text-base-content/20
                           ${formError && importType === 'github' ? 'border-red-500 focus:ring-red-500/10 focus:border-red-500/50' : ''}`}
@@ -271,7 +271,7 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                                 title={selectedSkillPaths.size === analysisResult.skills.length ? t('deselectAll') : t('selectAll')}
                               >
                                 {selectedSkillPaths.size === analysisResult.skills.length ? (
-                                  <CheckSquare size={16} className="text-blue-500" />
+                                  <CheckSquare size={16} className="text-emerald-500" />
                                 ) : (
                                   <Square size={16} className="text-gray-400" />
                                 )}
@@ -294,7 +294,7 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                                   </motion.span>
                                 )}
                               </AnimatePresence>
-                              <span className="px-2 py-0.5 bg-blue-500/10 text-blue-500 rounded-full text-[10px] font-bold">
+                              <span className="px-2 py-0.5 bg-teal-500/10 text-teal-500 rounded-full text-[10px] font-bold">
                                 {t('nFound', { count: analysisResult.skills.length })}
                               </span>
                             </div>
@@ -312,7 +312,7 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                                 transition={{ delay: index * 0.03 }}
                                 className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all border group overflow-hidden
                                   ${selectedSkillPaths.has(skill.path)
-                                    ? 'bg-blue-50/80 dark:bg-blue-500/10 border-blue-200/50 dark:border-blue-500/20 shadow-sm ring-1 ring-blue-500/10'
+                                    ? 'bg-emerald-50/80 dark:bg-emerald-500/10 border-emerald-200/50 dark:border-emerald-500/20 shadow-sm ring-1 ring-emerald-500/10'
                                     : 'bg-white/40 dark:bg-white/5 border-transparent hover:bg-white/60 dark:hover:bg-white/10 hover:shadow-sm'}`}
                                 onClick={() => toggleSelectSkill(skill.path)}
                                 title={skill.description?.trim() || undefined}
@@ -321,14 +321,14 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                                 {selectedSkillPaths.has(skill.path) && (
                                   <motion.div
                                     layoutId="selection-bar"
-                                    className="absolute left-0 top-0 bottom-0 w-0.5 bg-blue-500"
+                                    className="absolute left-0 top-0 bottom-0 w-0.5 bg-emerald-500"
                                   />
                                 )}
 
                                 {/* Icon */}
                                 <div className={`shrink-0 p-1.5 rounded-lg transition-colors
                                   ${selectedSkillPaths.has(skill.path)
-                                    ? 'bg-blue-500 text-white shadow-blue-500/20 shadow-lg'
+                                    ? 'bg-emerald-500 text-white shadow-emerald-500/20 shadow-lg'
                                     : 'bg-black/5 dark:bg-white/10 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300'}`}>
                                   <BookOpen size={16} strokeWidth={2.5} />
                                 </div>
@@ -347,7 +347,7 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                                   )}
                                   {selectedSkillPaths.has(skill.path) && (
                                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                                      <CheckCircle2 size={16} className="text-blue-500" />
+                                      <CheckCircle2 size={16} className="text-emerald-500" />
                                     </motion.div>
                                   )}
                                 </div>
@@ -374,7 +374,7 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                           placeholder="/Users/user/Downloads/my-skill"
                           className={`input w-full h-12 pl-4 pr-11 bg-black/5 dark:bg-white/5
                             border-gray-200/60 dark:border-white/10 rounded-2xl
-                            focus:ring-2 focus:ring-blue-500/15 focus:border-blue-500/15
+                            focus:ring-2 focus:ring-emerald-500/15 focus:border-emerald-500/15
                             transition-all duration-300 font-mono text-xs shadow-inner
                             placeholder:text-base-content/20
                             ${formError && importType === 'local' ? 'border-red-500 focus:ring-red-500/10 focus:border-red-500/50' : ''}`}
@@ -390,7 +390,7 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                         <button
                           className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5
                             hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors
-                            text-base-content/40 hover:text-blue-500"
+                            text-base-content/40 hover:text-emerald-500"
                           onClick={async (e) => {
                             e.preventDefault();
                             try {
@@ -484,8 +484,8 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                       value={importLevel}
                       onChange={setImportLevel}
                       projectPaths={projectPaths}
-                      selectedProjectIndex={selectedProjectIndex}
-                      onProjectIndexChange={onProjectIndexChange}
+                      selectedProjectIndices={selectedProjectIndices}
+                      onProjectIndicesChange={onProjectIndicesChange}
                     />
                   </motion.div>
                 )}
@@ -494,7 +494,10 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                 {/* Footer Actions */}
                 <div className="flex justify-end gap-3 pt-2">
                   <button
-                    className="px-4 py-2 rounded-xl text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 rounded-xl
+                             border border-gray-200/60 dark:border-white/10
+                             hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white
+                             transition-all"
                     onClick={() => {
                       if (analysisResult) {
                         onClearAnalysis();
@@ -516,8 +519,8 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="px-6 h-10 rounded-xl font-medium text-sm border-none shadow-lg
-                      bg-gradient-to-r from-blue-600 to-indigo-600 text-white
-                      shadow-blue-500/25 hover:shadow-blue-500/40
+                      bg-gradient-to-r from-emerald-500 to-teal-500 text-white
+                      shadow-emerald-500/25 hover:from-emerald-600 hover:to-teal-600
                       transition-all duration-300 min-w-[100px]
                       disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={() => {

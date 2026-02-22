@@ -109,7 +109,6 @@ const Marketplace = () => {
     defaultInstallLocation,
     projectPaths,
     selectedProjectIndex,
-    setSelectedProjectIndex,
     customSources,
     customMarketplaceSkills,
     fetchCustomMarketplace,
@@ -127,6 +126,7 @@ const Marketplace = () => {
   const [installLevel, setInstallLevel] = useState<InstallLevel>(defaultInstallLocation as InstallLevel || 'system');
   // Batch install confirm
   const [showBatchConfirm, setShowBatchConfirm] = useState(false);
+  const [selectedProjectIndices, setSelectedProjectIndices] = useState<number[]>([selectedProjectIndex]);
   const [installStatus, setInstallStatus] = useState<InstallStatus>({
     show: false,
     phase: 'idle',
@@ -275,7 +275,7 @@ const Marketplace = () => {
     }
   };
 
-  const handleBatchInstall = async (overridePath?: string) => {
+  const handleBatchInstall = async (overridePaths: (string | undefined)[]) => {
     if (batchSelectedSkills.length === 0 || isBatchInstalling) return;
 
     const skillsToInstall = marketplaceSkills.filter(s => batchSelectedSkills.includes(s.id));
@@ -309,10 +309,11 @@ const Marketplace = () => {
     setShowBatchConfirm(false);
 
     setIsBatchInstalling(true);
+    const totalOps = skillsToInstall.length * overridePaths.length;
     setInstallStatus({
       show: true,
       phase: 'installing',
-      message: t('installingCount', { count: skillsToInstall.length }),
+      message: t('installingCount', { count: totalOps }),
       type: 'info'
     });
 
@@ -320,13 +321,15 @@ const Marketplace = () => {
     let failCount = 0;
 
     try {
-      for (const skill of skillsToInstall) {
-        try {
-          await installSkill(skill, overridePath);
-          successCount++;
-        } catch (e) {
-          failCount++;
-          console.error(`Failed to install ${skill.name}:`, e);
+      for (const overridePath of overridePaths) {
+        for (const skill of skillsToInstall) {
+          try {
+            await installSkill(skill, overridePath);
+            successCount++;
+          } catch (e) {
+            failCount++;
+            console.error(`Failed to install ${skill.name}:`, e);
+          }
         }
       }
 
@@ -412,7 +415,7 @@ const Marketplace = () => {
     skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     skill.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
     skill.author.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ).sort((a, b) => (b.stars || b.installs || 0) - (a.stars || a.installs || 0));
 
   const totalPages = Math.ceil(filteredSkills.length / pageSize);
   const currentSkills = filteredSkills.slice((page - 1) * pageSize, page * pageSize);
@@ -541,9 +544,9 @@ const Marketplace = () => {
         <div className="flex flex-wrap gap-3 items-center">
           {/* Batch Mode Toggle */}
           <button
-            className={`flex items-center gap-2 px-4 h-11 rounded-2xl border transition-all duration-300 font-medium text-sm shadow-sm ${
+            className={`flex items-center gap-2 px-4 h-10 rounded-xl border transition-all duration-300 font-medium text-sm ${
               batchMode
-                ? 'bg-blue-500 text-white border-transparent shadow-lg shadow-blue-500/25'
+                ? 'bg-emerald-500 text-white border-transparent shadow-lg shadow-emerald-500/25'
                 : 'bg-black/5 dark:bg-white/5 border-gray-200/60 dark:border-white/10 text-gray-600 dark:text-gray-300 hover:bg-black/10 dark:hover:bg-white/10'
             }`}
             onClick={() => {
@@ -753,12 +756,12 @@ const Marketplace = () => {
                         </div>
                       ) : !batchMode && (
                         <motion.button
-                          whileHover={{ scale: 1.05, boxShadow: installed ? "0 10px 15px -3px rgba(245, 158, 11, 0.3)" : "0 10px 15px -3px rgba(59, 130, 246, 0.3)" }}
+                          whileHover={{ scale: 1.05, boxShadow: installed ? "0 10px 15px -3px rgba(20, 184, 166, 0.3)" : "0 10px 15px -3px rgba(16, 185, 129, 0.3)" }}
                           whileTap={{ scale: 0.95 }}
-                          className={`h-10 px-5 flex items-center gap-2 rounded-xl text-sm font-bold text-white shadow-md hover:shadow-lg transition-all ${
+                          className={`h-10 px-5 flex items-center gap-2 rounded-xl text-sm font-medium text-white shadow-lg transition-all ${
                             installed
-                              ? 'bg-gradient-to-br from-amber-500 to-orange-600'
-                              : 'bg-gradient-to-br from-blue-500 to-indigo-600'
+                              ? 'bg-gradient-to-r from-teal-500 to-emerald-600 shadow-teal-500/25 hover:from-teal-600 hover:to-emerald-700'
+                              : 'bg-gradient-to-r from-emerald-500 to-teal-500 shadow-emerald-500/25 hover:from-emerald-600 hover:to-teal-600'
                           }`}
                           onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();
@@ -919,8 +922,8 @@ const Marketplace = () => {
                   value={installLevel}
                   onChange={setInstallLevel}
                   projectPaths={projectPaths}
-                  selectedProjectIndex={selectedProjectIndex}
-                  onProjectIndexChange={setSelectedProjectIndex}
+                  selectedProjectIndices={selectedProjectIndices}
+                  onProjectIndicesChange={setSelectedProjectIndices}
                 />
               </div>
 
@@ -928,19 +931,57 @@ const Marketplace = () => {
               <div className="flex items-center justify-end gap-2 px-6 pb-5">
                 <button
                   onClick={() => setInstallTarget(null)}
-                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 rounded-xl
+                             border border-gray-200/60 dark:border-white/10
+                             hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white
+                             transition-all"
                 >
                   {t('cancel')}
                 </button>
                 <button
-                  onClick={() => {
-                    const projectRoot = installLevel === 'project' && projectPaths.length > 0
-                      ? (projectPaths[selectedProjectIndex] || projectPaths[0])
-                      : undefined;
-                    const overridePath = projectRoot ? `${projectRoot}/.claude/skills` : undefined;
-                    handleInstall(installTarget, overridePath);
+                  onClick={async () => {
+                    setInstallTarget(null);
+                    if (installLevel !== 'project' || selectedProjectIndices.length === 0) {
+                      handleInstall(installTarget, undefined);
+                      return;
+                    }
+                    setInstallingSkillId(installTarget.id);
+                    let successCount = 0;
+                    let failCount = 0;
+                    const total = selectedProjectIndices.length;
+                    for (let i = 0; i < total; i++) {
+                      const idx = selectedProjectIndices[i];
+                      const path = projectPaths[idx];
+                      setInstallStatus({
+                        show: true,
+                        phase: 'installing',
+                        message: t('installingToProject', {
+                          current: i + 1,
+                          total,
+                          path: path.split('/').pop()
+                        }),
+                        type: 'info'
+                      });
+                      try {
+                        await installSkill(installTarget, path);
+                        successCount++;
+                      } catch (e) {
+                        failCount++;
+                        console.error(`Failed to install to ${path}:`, e);
+                      }
+                    }
+                    setInstallStatus({
+                      show: true,
+                      phase: 'done',
+                      message: failCount > 0
+                        ? t('multiInstallPartial', { success: successCount, fail: failCount })
+                        : t('multiInstallSuccess', { count: successCount }),
+                      type: failCount > 0 ? 'warning' : 'success'
+                    });
+                    setInstallingSkillId(null);
+                    setTimeout(() => setInstallStatus({ show: false, phase: 'idle', message: '', type: 'info' }), 5000);
                   }}
-                  className="px-5 py-2 text-sm font-bold text-white bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all flex items-center gap-2"
+                  className="px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-lg shadow-emerald-500/25 hover:from-emerald-600 hover:to-teal-600 transition-all flex items-center gap-2"
                 >
                   <Download size={14} />
                   {t('confirmInstall')}
@@ -970,8 +1011,8 @@ const Marketplace = () => {
               {/* Header */}
               <div className="flex items-center justify-between px-6 pt-5 pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-500/10">
-                    <Package size={20} className="text-blue-500" />
+                  <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-500/10">
+                    <Package size={20} className="text-emerald-500" />
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-gray-900 dark:text-white">
@@ -999,8 +1040,8 @@ const Marketplace = () => {
                   value={installLevel}
                   onChange={setInstallLevel}
                   projectPaths={projectPaths}
-                  selectedProjectIndex={selectedProjectIndex}
-                  onProjectIndexChange={setSelectedProjectIndex}
+                  selectedProjectIndices={selectedProjectIndices}
+                  onProjectIndicesChange={setSelectedProjectIndices}
                 />
               </div>
 
@@ -1008,19 +1049,21 @@ const Marketplace = () => {
               <div className="flex items-center justify-end gap-2 px-6 pb-5">
                 <button
                   onClick={() => setShowBatchConfirm(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 rounded-xl hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 rounded-xl
+                             border border-gray-200/60 dark:border-white/10
+                             hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white
+                             transition-all"
                 >
                   {t('cancel')}
                 </button>
                 <button
-                  onClick={() => {
-                    const projectRoot = installLevel === 'project' && projectPaths.length > 0
-                      ? (projectPaths[selectedProjectIndex] || projectPaths[0])
-                      : undefined;
-                    const overridePath = projectRoot ? `${projectRoot}/.claude/skills` : undefined;
-                    handleBatchInstall(overridePath);
+                  onClick={async () => {
+                    const paths = installLevel === 'project' && selectedProjectIndices.length > 0
+                      ? selectedProjectIndices.map(i => projectPaths[i])
+                      : [undefined];
+                    handleBatchInstall(paths);
                   }}
-                  className="px-5 py-2 text-sm font-bold text-white bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all flex items-center gap-2"
+                  className="px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-lg shadow-emerald-500/25 hover:from-emerald-600 hover:to-teal-600 transition-all flex items-center gap-2"
                 >
                   <Download size={14} />
                   {t('installToProject', { count: batchSelectedSkills.length })}

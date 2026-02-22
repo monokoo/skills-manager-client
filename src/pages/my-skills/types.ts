@@ -51,7 +51,7 @@ export interface ImportSkillModalProps {
   isImporting: boolean;
   analysisResult: any;
   projectPaths: string[];
-  selectedProjectIndex: number;
+  selectedProjectIndices: number[];
   // 操作
   onAnalyzeGitHub: (url: string) => Promise<void>;
   onAnalyzeLocal: (path: string) => Promise<void>;
@@ -61,8 +61,8 @@ export interface ImportSkillModalProps {
     path?: string;
     selectedPaths: Set<string>;
     level: string;
-    projectIndex: number;
+    projectIndices: number[];
   }) => Promise<void>;
   onClearAnalysis: () => void;
-  onProjectIndexChange: (index: number) => void;
+  onProjectIndicesChange: (indices: number[]) => void;
 }

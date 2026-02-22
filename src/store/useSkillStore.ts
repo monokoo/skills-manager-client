@@ -305,7 +305,7 @@ export const useSkillStore = create<SkillStore>()(
           const result: any = await invoke('scan_skills');
 
           const mapSkill = (s: any) => ({
-            id: s.name,
+            id: `${s.skillType}:${s.name}`,
             name: s.name,
             description: s.description || '',
             descriptionZh: s.descriptionZh,
@@ -350,8 +350,7 @@ export const useSkillStore = create<SkillStore>()(
         let installPath = overrideInstallPath;
         if (!installPath && defaultInstallLocation === 'project') {
           if (projectPaths.length > 0) {
-            const projectRoot = projectPaths[selectedProjectIndex] || projectPaths[0];
-            installPath = `${projectRoot}/.claude/skills`;
+            installPath = projectPaths[selectedProjectIndex] || projectPaths[0];
           } else {
             console.warn('No project paths configured, installing to system directory');
           }
@@ -446,8 +445,7 @@ export const useSkillStore = create<SkillStore>()(
 
         let finalInstallPath = installPath;
         if (!finalInstallPath && defaultInstallLocation === 'project' && projectPaths.length > 0) {
-          const projectRoot = projectPaths[selectedProjectIndex] || projectPaths[0];
-          finalInstallPath = `${projectRoot}/.claude/skills`;
+          finalInstallPath = projectPaths[selectedProjectIndex] || projectPaths[0];
         }
 
         console.log(`[Store] Importing from GitHub: ${url}, installPath: ${finalInstallPath || 'default'}`);
@@ -569,8 +567,7 @@ export const useSkillStore = create<SkillStore>()(
 
         let finalInstallPath = installPath;
         if (!finalInstallPath && defaultInstallLocation === 'project' && projectPaths.length > 0) {
-          const projectRoot = projectPaths[selectedProjectIndex] || projectPaths[0];
-          finalInstallPath = `${projectRoot}/.claude/skills`;
+          finalInstallPath = projectPaths[selectedProjectIndex] || projectPaths[0];
         }
 
         console.log(`[Store] Importing from local: ${sourcePath}, installPath: ${finalInstallPath || 'default'}`);

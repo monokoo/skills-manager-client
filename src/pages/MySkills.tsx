@@ -418,12 +418,12 @@ const MySkills = () => {
         isImporting={importFlow.isImporting}
         analysisResult={store.analysisResult}
         projectPaths={store.projectPaths}
-        selectedProjectIndex={store.selectedProjectIndex}
+        selectedProjectIndices={[store.selectedProjectIndex]}
         onAnalyzeGitHub={importFlow.handleAnalyzeGitHub}
         onAnalyzeLocal={importFlow.handleAnalyzeLocal}
         onImport={importFlow.handleImport}
         onClearAnalysis={store.clearAnalysisResult}
-        onProjectIndexChange={store.setSelectedProjectIndex}
+        onProjectIndicesChange={(indices) => store.setSelectedProjectIndex(indices[0] ?? 0)}
       />
     </div>
   );

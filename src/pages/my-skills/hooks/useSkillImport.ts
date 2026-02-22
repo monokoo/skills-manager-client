@@ -106,7 +106,7 @@ export const useSkillImport = (
     path?: string;
     selectedPaths: Set<string>;
     level: string;
-    projectIndex: number;
+    projectIndices: number[];
   }) => {
     // Synchronous ref guard — immune to React's async state batching
     if (importLockRef.current) return;
@@ -152,26 +152,49 @@ export const useSkillImport = (
       // Only show "importing" AFTER user has confirmed
       setIsImporting(true);
 
-      const importInstallPath = params.level === 'project' && projectPaths.length > 0
-        ? (projectPaths[params.projectIndex] || projectPaths[0])
-        : undefined;
+      const paths = params.level === 'project' && projectPaths.length > 0 && params.projectIndices.length > 0
+        ? params.projectIndices.map(i => projectPaths[i] || projectPaths[0])
+        : [undefined];
 
       const sourcePath = params.type === 'local' ? (params.path || '') : analysisResult.tempPath;
-      const result = await importSelectedSkills(
-        sourcePath,
-        Array.from(params.selectedPaths),
-        params.type === 'github' ? (params.url || '') : '',
-        importInstallPath
-      );
+      let successCount = 0;
+      let failCount = 0;
+      let lastMessage = '';
 
-      if (result.success) {
-        showToast(true, result.message || t(params.type === 'local' ? 'importSuccessLocal' : 'importSuccessGitHub'));
+      for (const importInstallPath of paths) {
+        try {
+          const result = await importSelectedSkills(
+            sourcePath,
+            Array.from(params.selectedPaths),
+            params.type === 'github' ? (params.url || '') : '',
+            importInstallPath
+          );
+          if (result?.success) {
+            successCount++;
+            lastMessage = result.message || '';
+          } else {
+            failCount++;
+            lastMessage = result?.message || '';
+          }
+        } catch {
+          failCount++;
+        }
+      }
+
+      if (successCount > 0 && failCount === 0) {
+        showToast(true, lastMessage || t(params.type === 'local' ? 'importSuccessLocal' : 'importSuccessGitHub'));
+        setShowImportModal(false);
+        setImportType(null);
+        setSelectedSkillPaths(new Set());
+        store.clearAnalysisResult();
+      } else if (successCount > 0 && failCount > 0) {
+        showToast(true, t('multiInstallPartial', { success: successCount, fail: failCount }));
         setShowImportModal(false);
         setImportType(null);
         setSelectedSkillPaths(new Set());
         store.clearAnalysisResult();
       } else {
-        setAnalysisError(translateBackendError(result.message || ''));
+        setAnalysisError(translateBackendError(lastMessage || ''));
       }
     } catch (error: any) {
       setAnalysisError(translateBackendError(error.message || String(error)));

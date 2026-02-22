@@ -433,7 +433,7 @@ const Settings = () => {
                         </div>
                         <div className="text-xs font-mono text-primary mt-1 break-all">
                           {projectPaths[selectedProjectIndex] || projectPaths[0]}
-                          <span className="text-base-content/30">/.claude/skills/SkillName</span>
+                          <span className="text-base-content/30">/SkillName</span>
                         </div>
                       </div>
                     )}

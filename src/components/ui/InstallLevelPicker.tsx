@@ -7,8 +7,8 @@ interface InstallLevelPickerProps {
   value: InstallLevel;
   onChange: (level: InstallLevel) => void;
   projectPaths: string[];
-  selectedProjectIndex: number;
-  onProjectIndexChange?: (index: number) => void;
+  selectedProjectIndices: number[];
+  onProjectIndicesChange?: (indices: number[]) => void;
   compact?: boolean;
 }
 
@@ -16,12 +16,29 @@ export function InstallLevelPicker({
   value,
   onChange,
   projectPaths,
-  selectedProjectIndex,
-  onProjectIndexChange,
+  selectedProjectIndices,
+  onProjectIndicesChange,
   compact = false,
 }: InstallLevelPickerProps) {
   const { t } = useTranslation();
   const noProjects = projectPaths.length === 0;
+
+  const allSelected = projectPaths.length > 0 && selectedProjectIndices.length === projectPaths.length;
+
+  const toggleIndex = (index: number) => {
+    if (!onProjectIndicesChange) return;
+    const next = selectedProjectIndices.includes(index)
+      ? selectedProjectIndices.filter(i => i !== index)
+      : [...selectedProjectIndices, index];
+    onProjectIndicesChange(next);
+  };
+
+  const toggleAll = () => {
+    if (!onProjectIndicesChange) return;
+    onProjectIndicesChange(
+      allSelected ? [] : projectPaths.map((_, i) => i)
+    );
+  };
 
   const levels = [
     {
@@ -66,27 +83,47 @@ export function InstallLevelPicker({
         ))}
       </div>
 
-      {/* Project Path Selector */}
+      {/* Project Path Checkbox List */}
       {value === 'project' && projectPaths.length > 0 && !compact && (
-        <select
-          value={selectedProjectIndex}
-          onChange={e => onProjectIndexChange?.(Number(e.target.value))}
-          disabled={!onProjectIndexChange}
-          className={`
-            w-full px-3 py-2 rounded-lg text-sm
-            bg-gray-50 dark:bg-white/5
-            border border-gray-200 dark:border-white/10
-            text-gray-700 dark:text-gray-300
-            focus:outline-none focus:ring-2 focus:ring-blue-500/30
-            ${!onProjectIndexChange ? 'cursor-default' : ''}
-          `}
-        >
+        <div className="space-y-1.5">
+          {/* Select All */}
+          {projectPaths.length > 1 && (
+            <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 dark:text-gray-400 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleAll}
+                disabled={!onProjectIndicesChange}
+                className="checkbox checkbox-xs checkbox-primary rounded"
+              />
+              {t('selectAll', { defaultValue: '全选' })}
+            </label>
+          )}
+
+          {/* Path items */}
           {projectPaths.map((path, i) => (
-            <option key={i} value={i}>
-              {path}
-            </option>
+            <label
+              key={i}
+              className={`
+                flex items-center gap-2 px-3 py-2 rounded-lg text-sm cursor-pointer
+                transition-colors
+                ${selectedProjectIndices.includes(i)
+                  ? 'bg-blue-500/10 dark:bg-blue-400/10 text-blue-700 dark:text-blue-300'
+                  : 'bg-gray-50 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10'
+                }
+              `}
+            >
+              <input
+                type="checkbox"
+                checked={selectedProjectIndices.includes(i)}
+                onChange={() => toggleIndex(i)}
+                disabled={!onProjectIndicesChange}
+                className="checkbox checkbox-xs checkbox-primary rounded"
+              />
+              <span className="truncate font-mono text-xs">{path}</span>
+            </label>
           ))}
-        </select>
+        </div>
       )}
 
       {noProjects && !compact && (

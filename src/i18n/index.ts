@@ -249,6 +249,9 @@ const resources = {
       installingCount: "Batch installing {{count}} Skills...",
       batchInstallComplete: "Batch install complete: {{success}} succeeded{{failText}}",
       batchInstallFailed: "Batch install failed: {{error}}",
+      installingToProject: "Installing to project {{current}}/{{total}} ({{path}})...",
+      multiInstallSuccess: "Installed to {{count}} project(s) successfully",
+      multiInstallPartial: "Partial success: {{success}} succeeded, {{fail}} failed",
       openUrlError: "Failed to open URL: {{error}}",
       downloadingSkill: "Downloading {{name}}...",
       installingSkill: "Installing {{name}}...",
@@ -270,7 +273,7 @@ const resources = {
 
       // Custom Sources
       customSources: "Custom Sources",
-      officialMarketplace: "Official Marketplace",
+      officialMarketplace: "Skill List",
       addSource: "Add Source",
       removeSource: "Remove Source",
       refreshAll: "Refresh All",
@@ -288,6 +291,14 @@ const resources = {
       retryIndex: "Retry",
       confirmRemoveSource: "Remove this source? Associated Skills will also be removed.",
       sourceAlreadyExists: "This source already exists",
+      synced: "Synced",
+      justNow: "Just now",
+      minutesAgoShort: "{{count}}m ago",
+      hoursAgoShort: "{{count}}h ago",
+      daysAgoShort: "{{count}}d ago",
+      skillsUnit: "Skills",
+      githubUrlLabel: "GitHub URL",
+      supportedFormats: "Supported formats:",
 
       // Source Filter
       sourceFilter: "Source",
@@ -581,6 +592,9 @@ const resources = {
       installingCount: "正在批量安装 {{count}} 个 Skills...",
       batchInstallComplete: "批量安装完成: {{success}} 成功{{failText}}",
       batchInstallFailed: "批量安装失败: {{error}}",
+      installingToProject: "正在安装到项目 {{current}}/{{total}} ({{path}})...",
+      multiInstallSuccess: "成功安装到 {{count}} 个项目",
+      multiInstallPartial: "部分成功：{{success}} 个成功，{{fail}} 个失败",
       openUrlError: "无法打开链接: {{error}}",
       downloadingSkill: "正在下载 {{name}}...",
       installingSkill: "正在安装 {{name}}...",
@@ -602,7 +616,7 @@ const resources = {
 
       // 自定义源
       customSources: "自定义源",
-      officialMarketplace: "官方市场",
+      officialMarketplace: "Skill 列表",
       addSource: "添加源",
       removeSource: "删除源",
       refreshAll: "全部刷新",
@@ -620,6 +634,14 @@ const resources = {
       retryIndex: "重试",
       confirmRemoveSource: "删除该源？关联的 Skills 也会被移除。",
       sourceAlreadyExists: "该源已存在",
+      synced: "已同步",
+      justNow: "刚刚",
+      minutesAgoShort: "{{count}} 分钟前",
+      hoursAgoShort: "{{count}} 小时前",
+      daysAgoShort: "{{count}} 天前",
+      skillsUnit: "个 Skills",
+      githubUrlLabel: "GitHub URL",
+      supportedFormats: "支持的格式：",
 
       // 来源筛选
       sourceFilter: "来源",

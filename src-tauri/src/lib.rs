@@ -563,7 +563,7 @@ fn scan_skills() -> Result<ScanResult, String> {
 
     if let Ok(paths) = get_project_paths() {
         for project_path in paths {
-            let skills_dir = PathBuf::from(&project_path).join(".claude").join("skills");
+            let skills_dir = expand_tilde(&project_path);
             if skills_dir.exists() {
                 for entry in WalkDir::new(&skills_dir).max_depth(3) {
                     if let Ok(entry) = entry {
@@ -722,7 +722,7 @@ async fn import_github_skill(request: ImportGithubRequest) -> Result<ImportResul
 
         // 确定安装目录
         let install_dir = if let Some(path) = &request.install_path {
-            PathBuf::from(path)
+            expand_tilde(path)
         } else {
             match get_claude_skills_dir() {
                 Some(dir) => dir,
@@ -2155,7 +2155,21 @@ async fn refresh_custom_source(id: Option<String>) -> Result<Vec<CustomSource>, 
         }
     }
 
-    load_custom_sources()
+    // Always update last_sync_at for all targeted sources, even if no new commits
+    let mut final_sources = load_custom_sources()?;
+    let now = current_timestamp();
+    let target_ids: Vec<String> = match &id {
+        Some(id) => vec![id.clone()],
+        None => final_sources.iter().map(|s| s.id.clone()).collect(),
+    };
+    for source in final_sources.iter_mut() {
+        if target_ids.contains(&source.id) {
+            source.last_sync_at = now;
+        }
+    }
+    save_custom_sources(&final_sources)?;
+
+    Ok(final_sources)
 }
 
 // skills.sh search proxy — bypasses CORS restriction in webview
