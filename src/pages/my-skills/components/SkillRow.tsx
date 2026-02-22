@@ -64,7 +64,7 @@ export const SkillRow: React.FC<SkillRowProps> = React.memo(({
   return (
     <div
       className={`group flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors min-w-[700px] ${
-        isSelected ? 'bg-blue-50 dark:bg-blue-500/5' : ''
+        isSelected ? 'bg-emerald-50 dark:bg-emerald-500/5' : ''
       }`}
     >
       {/* Checkbox */}
@@ -73,7 +73,7 @@ export const SkillRow: React.FC<SkillRowProps> = React.memo(({
         onClick={() => onToggleSelect(skill.id)}
       >
         {isSelected ? (
-          <CheckSquare size={16} className="text-primary" />
+          <CheckSquare size={16} className="text-emerald-500" />
         ) : (
           <Square size={16} className="text-base-content/40" />
         )}
@@ -112,7 +112,7 @@ export const SkillRow: React.FC<SkillRowProps> = React.memo(({
                 className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-mono
                   bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400
                   rounded border border-gray-200/60 dark:border-white/10
-                  hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400
+                  hover:bg-emerald-50 dark:hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400
                   transition-colors truncate max-w-[50vw] sm:max-w-none"
                 title={p}
                 onClick={(e) => {
@@ -171,15 +171,11 @@ export const SkillRow: React.FC<SkillRowProps> = React.memo(({
       </div>
 
       {/* Actions */}
-      <div className={`w-28 shrink-0 flex items-center justify-end gap-1 sticky right-0 pl-3 shadow-[inset_4px_0_6px_-4px_rgba(0,0,0,0.06)] transition-colors ${
-        isSelected
-          ? 'bg-blue-50 dark:bg-blue-900/20'
-          : 'bg-white dark:bg-[#0d0d1a]'
-      } group-hover:bg-gray-50 dark:group-hover:bg-white/5`}>
-        {/* Update button for skills with sourceUrl */}
-        {skill.sourceUrl && (
+      <div className="shrink-0 min-w-[60px] flex items-center justify-end gap-1 pr-2">
+        {/* Update button for skills with available updates */}
+        {skill.hasUpdate && (
           <button
-            className="btn btn-ghost btn-xs gap-1 rounded-lg text-primary hover:bg-primary/10"
+            className="p-1.5 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
             onClick={() => onUpdate(skill.id)}
             disabled={isUpdating}
             title={t('update')}
@@ -192,14 +188,14 @@ export const SkillRow: React.FC<SkillRowProps> = React.memo(({
           </button>
         )}
         <button
-          className="btn btn-ghost btn-xs rounded-lg"
+          className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-500/10 transition-colors"
           onClick={() => onView(skill)}
           title={t('view')}
         >
           <Eye size={14} />
         </button>
         <button
-          className="btn btn-ghost btn-xs text-error rounded-lg hover:bg-error/10"
+          className="p-1.5 rounded-lg text-red-500 dark:text-red-400 hover:bg-red-500/10 transition-colors"
           onClick={() => onUninstall(skill)}
           title={t('remove')}
         >

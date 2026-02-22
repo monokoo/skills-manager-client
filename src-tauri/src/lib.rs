@@ -519,7 +519,13 @@ fn parse_skill_md(path: &PathBuf, skill_type: &str) -> Option<SkillInfo> {
         author: author_from_md.or_else(|| metadata.as_ref().and_then(|m| m.author.clone())),
         source: metadata.as_ref().map(|m| m.source.clone()),
         source_url: metadata.as_ref().and_then(|m| m.source_url.clone()),
-        install_date: metadata.as_ref().map(|m| m.install_date),
+        install_date: metadata.as_ref().map(|m| m.install_date).or_else(|| {
+            // Fallback: use SKILL.md file's mtime when no .skill-meta.json exists
+            fs::metadata(path).ok()
+                .and_then(|m| m.modified().ok())
+                .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_millis() as u64)
+        }),
         commit_hash: metadata.as_ref().and_then(|m| m.commit_hash.clone()),
     })
 }

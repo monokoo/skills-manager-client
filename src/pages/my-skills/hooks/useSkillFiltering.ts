@@ -11,8 +11,8 @@ export type SortDir = 'asc' | 'desc';
 export const useSkillFiltering = (installedSkills: InstalledSkill[]) => {
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortBy | null>(null);
-  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [sortBy, setSortBy] = useState<SortBy | null>('installDate');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
 
   const setTabAndClearQuery = useCallback((tab: TabType) => {
     setActiveTab(tab);

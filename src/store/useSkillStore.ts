@@ -314,7 +314,7 @@ export const useSkillStore = create<SkillStore>()(
             localPaths: s.paths || [s.path],
             status: 'safe' as const,
             type: s.skillType,
-            installDate: s.installDate || Date.now(),
+            installDate: s.installDate || 0,
             version: s.version,
             author: s.author,
             stars: 0,
@@ -735,6 +735,7 @@ export const useSkillStore = create<SkillStore>()(
               skipSecurityCheck: false
             }
           });
+
 
           return result.success;
         } catch (error) {

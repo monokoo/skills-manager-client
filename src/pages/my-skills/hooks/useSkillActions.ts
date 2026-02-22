@@ -97,14 +97,15 @@ export const useSkillActions = (
   const handleSingleUpdate = useCallback(async (skillId: string, reinstallSkill: (id: string) => Promise<boolean>) => {
     setUpdatingSkillId(skillId);
     try {
-      await reinstallSkill(skillId);
-      showToast(true, t('updateSuccess'));
+      const success = await reinstallSkill(skillId);
+      showToast(success, success ? t('updateSuccess') : t('updateFailed'));
+      await scanLocalSkills();
     } catch {
       showToast(false, t('updateFailed'));
     } finally {
       setUpdatingSkillId(null);
     }
-  }, [showToast, t]);
+  }, [showToast, t, scanLocalSkills]);
 
   return {
     // View state

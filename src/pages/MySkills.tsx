@@ -24,7 +24,7 @@ import { useSkillImport } from './my-skills/hooks/useSkillImport';
 
 // Tab 配置：颜色标记
 const TAB_COLORS: Record<TabType, string> = {
-  all: 'bg-blue-400',
+  all: 'bg-slate-400',
   system: 'bg-emerald-400',
   project: 'bg-amber-400',
 };
@@ -169,10 +169,10 @@ const MySkills = () => {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl shadow-lg backdrop-blur-xl border border-white/20 bg-blue-500/10"
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl shadow-lg backdrop-blur-xl border border-white/20 bg-emerald-500/10"
           >
             <span className="text-sm font-medium">
-              {t('batchUpdateResult', {
+              {t('batchUpdateComplete', {
                 success: updateResult.success.length,
                 fail: updateResult.failed.length,
               })}
@@ -185,7 +185,7 @@ const MySkills = () => {
         {/* Header Section */}
         <div className="flex flex-wrap justify-between items-center gap-3">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl shrink-0">
+            <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl shrink-0">
               <Package size={24} className="text-white" />
             </div>
             <div>
@@ -201,7 +201,7 @@ const MySkills = () => {
               whileTap={{ scale: 0.98 }}
               className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 h-10 sm:h-12 rounded-2xl border border-gray-200/60 dark:border-white/10
                 bg-black/5 dark:bg-white/5 text-gray-600 dark:text-gray-300 text-xs sm:text-sm font-medium
-                hover:bg-white/80 dark:hover:bg-white/10 hover:border-blue-500/30 transition-all duration-200 shadow-sm"
+                hover:bg-white/80 dark:hover:bg-white/10 hover:border-emerald-500/30 transition-all duration-200 shadow-sm"
               onClick={() => store.checkSkillUpdates()}
               disabled={store.isCheckingUpdates}
             >
@@ -209,7 +209,7 @@ const MySkills = () => {
                 animate={store.isCheckingUpdates ? { rotate: 360 } : { rotate: 0 }}
                 transition={store.isCheckingUpdates ? { duration: 1, repeat: Infinity, ease: "linear" } : { duration: 0.5 }}
               >
-                <RefreshCw size={14} className={store.isCheckingUpdates ? 'text-blue-500' : ''} />
+                <RefreshCw size={14} className={store.isCheckingUpdates ? 'text-emerald-500' : ''} />
               </motion.div>
               <span className="hidden sm:inline">{t('checkUpdates')}</span>
             </motion.button>
@@ -217,7 +217,7 @@ const MySkills = () => {
             <motion.button
               whileHover={{ scale: 1.02 }}
               className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 h-10 sm:h-12 rounded-2xl font-semibold text-xs sm:text-sm text-white
-                bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-700 shadow-lg shadow-blue-500/20"
+                bg-gradient-to-br from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/20"
               onClick={() => importFlow.setShowImportModal(true)}
             >
               <Plus size={16} />
@@ -235,7 +235,7 @@ const MySkills = () => {
                 role="tab"
                 className={`tab transition-all duration-300 rounded-lg text-sm font-medium ${
                   activeTab === tab
-                  ? 'bg-white dark:bg-white/10 text-blue-500 shadow-sm'
+                  ? 'bg-white dark:bg-white/10 text-emerald-600 shadow-sm'
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-900'
                 }`}
                 onClick={() => setActiveTab(tab)}
@@ -246,16 +246,21 @@ const MySkills = () => {
             ))}
           </div>
 
-          <AnimatePresence mode="wait">
-            {selectedIds.size > 0 ? (
-              <motion.div
-                key="batch-actions"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                className="flex items-center gap-2 bg-white/60 dark:bg-black/40 backdrop-blur-xl border border-white/20 rounded-2xl px-3 py-1.5 shadow-lg"
-              >
-                <div className="bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded-lg text-xs font-bold">{selectedIds.size}</div>
+          <SearchBox value={searchQuery} onChange={setSearchQuery} placeholder={t('searchPlaceholder')} />
+        </div>
+
+        {/* Contextual Batch Action Row */}
+        <AnimatePresence>
+          {selectedIds.size > 0 && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ height: { duration: 0.25 }, opacity: { duration: 0.2 } }}
+              className="overflow-hidden"
+            >
+              <div className="flex flex-wrap items-center gap-2 px-3 py-2 bg-emerald-50/60 dark:bg-emerald-500/5 border border-emerald-200/40 dark:border-emerald-500/10 rounded-2xl">
+                <div className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-lg text-xs font-bold">{selectedIds.size}</div>
                 <button
                     className="text-xs font-medium text-gray-500 px-2 rounded-lg hover:bg-black/5"
                     onClick={() => toggleSelectAll(filteredSkills.map(s => s.id))}
@@ -264,7 +269,7 @@ const MySkills = () => {
                 </button>
                 <div className="w-px h-4 bg-gray-200 dark:bg-white/10 mx-1" />
                 <button
-                  className="btn btn-ghost btn-xs text-primary gap-1"
+                  className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
                   disabled={updatableSelected.length === 0}
                   onClick={handleBatchUpdate}
                 >
@@ -272,7 +277,7 @@ const MySkills = () => {
                   <span className="hidden md:inline">{t('batchUpdate')}</span>
                 </button>
                 <button
-                  className="btn btn-ghost btn-xs text-error gap-1"
+                  className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors"
                   onClick={handleBatchDelete}
                   disabled={isBatchDeleting}
                 >
@@ -280,15 +285,11 @@ const MySkills = () => {
                   <Trash2 size={14} />
                   <span className="hidden md:inline">{t('batchDelete')}</span>
                 </button>
-                <button className="p-1 hover:bg-black/5 rounded" onClick={clearSelection}><X size={14} /></button>
-              </motion.div>
-            ) : (
-              <motion.div key="search-box">
-                <SearchBox value={searchQuery} onChange={setSearchQuery} placeholder={t('searchPlaceholder')} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+                <button className="p-1 hover:bg-black/5 rounded ml-auto" onClick={clearSelection}><X size={14} /></button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </StickyHeader>
 
       {/* Main List Area */}
@@ -297,7 +298,7 @@ const MySkills = () => {
           <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-200/60 dark:border-white/10 shadow-sm overflow-hidden overflow-x-auto">
             <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-white/5 border-b border-gray-200/60 dark:border-white/10 text-xs font-semibold text-gray-500 uppercase tracking-wider min-w-[700px]">
               <button className="shrink-0" onClick={() => toggleSelectAll(filteredSkills.map(s => s.id))}>
-                {selectedIds.size === filteredSkills.length ? <CheckSquare size={16} className="text-primary" /> : <Square size={16} />}
+                {selectedIds.size === filteredSkills.length ? <CheckSquare size={16} className="text-emerald-500" /> : <Square size={16} />}
               </button>
               <button className="flex-1 flex items-center gap-1" onClick={() => toggleSort('name')}>
                 {t('name')} <SortIcon field="name" />
@@ -353,8 +354,8 @@ const MySkills = () => {
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 className="flex items-center gap-2 px-5 h-10 rounded-xl font-medium text-sm text-white
-                  bg-gradient-to-r from-blue-500 to-indigo-600 shadow-md shadow-blue-500/20
-                  hover:shadow-lg hover:shadow-blue-500/30 transition-shadow"
+                  bg-gradient-to-r from-emerald-500 to-teal-500 shadow-md shadow-emerald-500/20
+                  hover:shadow-lg hover:shadow-emerald-500/30 transition-shadow"
                 onClick={() => importFlow.setShowImportModal(true)}
               >
                 <Plus size={16} />
