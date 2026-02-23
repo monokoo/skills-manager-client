@@ -18,6 +18,26 @@ const agentColors: Record<string, string> = {
   'trae': 'bg-pink-500',
 };
 
+// --- Reusable style helpers ---
+const toggleClasses = (checked: boolean) =>
+  `relative ml-4 w-11 h-6 rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 ${checked ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`;
+
+const toggleThumbClasses = (checked: boolean) =>
+  `absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out ${checked ? 'translate-x-5' : 'translate-x-0'}`;
+
+const RadioIndicator = ({ checked, size = 'md' }: { checked: boolean; size?: 'sm' | 'md' }) => {
+  const d = size === 'sm' ? { o: 'w-4 h-4', i: 'w-1.5 h-1.5' } : { o: 'w-5 h-5', i: 'w-2 h-2' };
+  return (
+    <div className={`${d.o} rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-200 ${checked ? 'border-blue-500 bg-blue-500' : 'border-gray-300 dark:border-gray-600'}`}>
+      {checked && <div className={`${d.i} rounded-full bg-white`} />}
+    </div>
+  );
+};
+
+const PRIMARY_BTN = 'h-9 px-4 flex items-center gap-2 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-cyan-500 shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:hover:scale-100 disabled:shadow-none';
+
+const isTauri = typeof window !== 'undefined' && !!(window as any).__TAURI_INTERNALS__;
+
 const Settings = () => {
   const { t } = useTranslation();
   const {
@@ -290,7 +310,7 @@ const Settings = () => {
                     </div>
                     {isLinked ? (
                       <button
-                        className="btn btn-xs btn-ghost text-error gap-1"
+                        className="h-7 px-3 flex items-center gap-1.5 rounded-lg text-xs font-medium text-red-500 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-all duration-200 disabled:opacity-50"
                         onClick={() => handleRemoveSymlink(agent.id)}
                         disabled={isLoading}
                       >
@@ -303,7 +323,7 @@ const Settings = () => {
                       </button>
                     ) : (
                       <button
-                        className="btn btn-xs btn-primary gap-1"
+                        className="h-7 px-3 flex items-center gap-1.5 rounded-lg text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-all duration-200 disabled:opacity-50"
                         onClick={() => handleCreateSymlink(agent.id)}
                         disabled={isLoading}
                       >
@@ -321,22 +341,22 @@ const Settings = () => {
             </div>
             <div className="flex items-center gap-2 mt-4">
               <button
-                className="btn h-10 px-4 bg-primary text-white border-0 rounded-xl shadow-lg shadow-primary/25 font-semibold text-sm hover:bg-primary/90 transition-all duration-200 gap-2"
+                className={PRIMARY_BTN}
                 onClick={handleCreateAllSymlinks}
                 disabled={isCreatingSymlinks}
               >
                 {isCreatingSymlinks ? (
                   <span className="loading loading-spinner loading-xs" />
                 ) : (
-                  <Link2 size={16} />
+                  <Link2 size={15} />
                 )}
                 {t('setupAll')}
               </button>
               <button
-                className="btn h-10 px-4 rounded-xl border border-gray-200/60 dark:border-white/10 bg-black/5 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-black/10 dark:hover:bg-white/10 transition-colors gap-2"
+                className="h-9 px-4 flex items-center gap-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 bg-black/5 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 hover:bg-black/10 dark:hover:bg-white/10 active:scale-[0.98] transition-all duration-200"
                 onClick={() => checkSymlinkStatus()}
               >
-                <RefreshCw size={16} />
+                <RefreshCw size={15} />
                 {t('refresh')}
               </button>
             </div>
@@ -380,13 +400,7 @@ const Settings = () => {
                 onClick={() => setDefaultInstallLocation('system')}
               >
                 <div className="flex items-center gap-3">
-                  <input
-                    type="radio"
-                    name="install-location"
-                    className="radio radio-primary radio-sm"
-                    checked={defaultInstallLocation === 'system'}
-                    onChange={() => setDefaultInstallLocation('system')}
-                  />
+                  <RadioIndicator checked={defaultInstallLocation === 'system'} />
                   <div className="flex-1">
                     <div className="font-medium text-sm flex items-center gap-2">
                       {t('systemGlobalDir')}
@@ -411,13 +425,7 @@ const Settings = () => {
                 onClick={() => setDefaultInstallLocation('project')}
               >
                 <div className="flex items-center gap-3">
-                  <input
-                    type="radio"
-                    name="install-location"
-                    className="radio radio-primary radio-sm"
-                    checked={defaultInstallLocation === 'project'}
-                    onChange={() => setDefaultInstallLocation('project')}
-                  />
+                  <RadioIndicator checked={defaultInstallLocation === 'project'} />
                   <div className="flex-1">
                     <div className="font-medium text-sm">
                       {t('projectSpecificDir')}
@@ -455,13 +463,13 @@ const Settings = () => {
                           setSelectedProjectIndex(index);
                         }}
                       >
+                        <RadioIndicator checked={selectedProjectIndex === index} size="sm" />
                         <input
                           type="radio"
                           name="selected-project"
-                          className="radio radio-xs radio-primary"
+                          className="sr-only"
                           checked={selectedProjectIndex === index}
                           onChange={() => setSelectedProjectIndex(index)}
-                          onClick={(e) => e.stopPropagation()}
                         />
                         <FolderOpen size={12} className="text-base-content/50" />
                         <span className="font-mono truncate" title={path}>{path}</span>
@@ -525,20 +533,45 @@ const Settings = () => {
                 ))
               )}
               <div className="flex gap-2 mt-3">
-                <input
-                  type="text"
-                  placeholder={t('enterProjectPath')}
-                  className="input h-10 px-4 bg-black/5 dark:bg-white/5 border-gray-200/60 dark:border-white/10 flex-1 rounded-xl text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/40 transition-all duration-300 shadow-inner"
-                  value={newPath}
-                  onChange={(e) => setNewPath(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddPath()}
-                />
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder={t('enterProjectPath')}
+                    className="h-9 w-full pl-4 pr-10 bg-black/5 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/40 transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                    value={newPath}
+                    onChange={(e) => setNewPath(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddPath()}
+                  />
+                  {isTauri && (
+                    <button
+                      type="button"
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-500/10 transition-all duration-200"
+                      title={t('selectFolder')}
+                      onClick={async () => {
+                        try {
+                          const { open: openDialog } = await import('@tauri-apps/plugin-dialog');
+                          const selected = await openDialog({
+                            directory: true,
+                            multiple: false,
+                          });
+                          if (selected && typeof selected === 'string') {
+                            setNewPath(selected);
+                          }
+                        } catch (err) {
+                          console.error('Failed to open directory dialog:', err);
+                        }
+                      }}
+                    >
+                      <FolderOpen size={15} />
+                    </button>
+                  )}
+                </div>
                 <button
-                  className="btn h-10 px-4 btn-primary border-0 rounded-xl shadow-sm text-sm font-semibold gap-1.5"
+                  className={PRIMARY_BTN}
                   onClick={handleAddPath}
                   disabled={!newPath.trim()}
                 >
-                  <Plus size={16} />
+                  <Plus size={15} />
                   {t('add')}
                 </button>
               </div>
@@ -571,12 +604,15 @@ const Settings = () => {
                   <div className="font-medium text-sm">{t('officialSourceToggle')}</div>
                   <p className="text-xs text-base-content/50 mt-0.5">{t('officialSourceDesc')}</p>
                 </div>
-                <input
-                  type="checkbox"
-                  className="toggle toggle-primary toggle-sm ml-4"
-                  checked={officialSourceEnabled}
-                  onChange={(e) => setOfficialSourceEnabled(e.target.checked)}
-                />
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={officialSourceEnabled}
+                  className={toggleClasses(officialSourceEnabled)}
+                  onClick={() => setOfficialSourceEnabled(!officialSourceEnabled)}
+                >
+                  <span className={toggleThumbClasses(officialSourceEnabled)} />
+                </button>
               </div>
 
               {/* Show Source Badge Toggle */}
@@ -585,12 +621,15 @@ const Settings = () => {
                   <div className="font-medium text-sm">{t('showSourceBadge')}</div>
                   <p className="text-xs text-base-content/50 mt-0.5">{t('showSourceBadgeDesc')}</p>
                 </div>
-                <input
-                  type="checkbox"
-                  className="toggle toggle-primary toggle-sm ml-4"
-                  checked={showSourceBadge}
-                  onChange={(e) => setShowSourceBadge(e.target.checked)}
-                />
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={showSourceBadge}
+                  className={toggleClasses(showSourceBadge)}
+                  onClick={() => setShowSourceBadge(!showSourceBadge)}
+                >
+                  <span className={toggleThumbClasses(showSourceBadge)} />
+                </button>
               </div>
             </div>
           </div>
@@ -617,7 +656,7 @@ const Settings = () => {
             <div className="pt-2">
               <div className="flex items-center gap-3">
                 <span className="text-sm text-base-content/70">{t('theme')}</span>
-                <select className="select select-sm bg-base-100 border-base-300 rounded-lg">
+                <select className="h-8 px-3 pr-8 bg-black/5 dark:bg-white/5 border border-gray-200/60 dark:border-white/10 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/40 transition-all duration-200 appearance-none cursor-pointer">
                   <option>{t('followSystem')}</option>
                   <option>{t('light')}</option>
                   <option>{t('dark')}</option>

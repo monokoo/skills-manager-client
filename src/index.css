@@ -220,9 +220,11 @@ body {
 .markdown-body a {
   color: #3b82f6;
   text-decoration: none;
+  pointer-events: none;
+  cursor: default;
 }
 .markdown-body a:hover {
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 /* Bold / Italic */
