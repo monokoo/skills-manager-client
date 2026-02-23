@@ -284,7 +284,29 @@ fn expand_tilde(path: &str) -> PathBuf {
 }
 
 fn get_config_path() -> Option<PathBuf> {
-    dirs::home_dir().map(|h| h.join(".claude").join("skill-manager-config.json"))
+    let new_path = get_custom_data_dir().ok().map(|d| d.join("config.json"));
+    let old_path = dirs::home_dir().map(|h| h.join(".claude").join("skill-manager-config.json"));
+
+    // Auto-migrate: if old path exists but new path does not, copy then remove
+    if let (Some(ref new), Some(ref old)) = (&new_path, &old_path) {
+        if old.exists() && !new.exists() {
+            if let Ok(content) = fs::read_to_string(old) {
+                if fs::write(new, &content).is_ok() {
+                    let _ = fs::remove_file(old);
+                    eprintln!("[config] Migrated {} -> {}", old.display(), new.display());
+                }
+            }
+        }
+    }
+
+    // Prefer new path; fall back to old path if new doesn't exist yet
+    match &new_path {
+        Some(p) if p.exists() => new_path,
+        _ => match &old_path {
+            Some(p) if p.exists() => old_path,
+            _ => new_path, // neither exists, use new path for creation
+        }
+    }
 }
 
 // 从 SKILL.md 中提取版本号
