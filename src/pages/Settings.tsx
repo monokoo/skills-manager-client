@@ -153,27 +153,27 @@ const Settings = () => {
       <div className="flex-1 space-y-3">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl">
+          <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl shrink-0">
             <Settings2 size={24} className="text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('settings')}</h1>
-            <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
-              {platform && (
-                <>
-                  <span className="flex items-center gap-1">
-                    <Monitor size={12} />
-                    {platform.os.toUpperCase()} · {platform.arch}
-                  </span>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{t('settings')}</h1>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+              {platform ? (
+                <span className="flex items-center gap-1">
+                  <Monitor size={12} />
+                  {platform.os.toUpperCase()} · {platform.arch}
                   {platform.os === 'windows' && (
-                    <span className="text-amber-500 flex items-center gap-1">
+                    <span className="text-amber-500 flex items-center gap-1 ml-2">
                       <AlertTriangle size={12} />
                       {t('adminRequired')}
                     </span>
                   )}
-                </>
+                </span>
+              ) : (
+                <span>{t('systemConfig')}</span>
               )}
-            </div>
+            </p>
           </div>
         </div>
 

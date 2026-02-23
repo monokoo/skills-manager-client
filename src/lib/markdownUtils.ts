@@ -13,12 +13,25 @@ export function parseFrontmatter(content: string): { meta: Record<string, string
   const meta: Record<string, string> = {};
   let currentKey = '';
   for (const line of raw.split('\n')) {
-    const match = line.match(/^(\w[\w\s]*?):\s*(.*)$/);
+    // Support keys with hyphens (e.g. "multi-word-key: value")
+    const match = line.match(/^([\w][\w\s-]*?):\s*(.*)$/);
     if (match) {
       currentKey = match[1].trim();
-      meta[currentKey] = match[2].trim();
-    } else if (currentKey && line.startsWith('  ')) {
-      meta[currentKey] += ' ' + line.trim();
+      const rawValue = match[2].trim();
+      // Strip YAML block scalar indicators (|, >, |2, >-, |2+ etc.)
+      if (/^[|>][\d]*[+-]?$/.test(rawValue)) {
+        meta[currentKey] = '';
+      } else {
+        meta[currentKey] = rawValue;
+      }
+    } else if (currentKey && (line.startsWith('  ') || line.startsWith('\t'))) {
+      // Continuation line: append with space separator
+      const trimmedLine = line.trim();
+      if (trimmedLine) {
+        meta[currentKey] = meta[currentKey]
+          ? meta[currentKey] + ' ' + trimmedLine
+          : trimmedLine;
+      }
     }
   }
 

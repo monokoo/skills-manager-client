@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useSkillStore } from '../store/useSkillStore';
-import { ShieldCheck, Zap, Box, HardDrive, ArrowUpRight } from 'lucide-react';
+import { ShieldCheck, Zap, Box, HardDrive, ArrowUpRight, LayoutDashboard } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import { BentoGrid, BentoItem } from '../components/ui/BentoGrid';
@@ -67,11 +67,16 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('dashboard')}</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          {t('allActiveSkills')}
-        </p>
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl shrink-0">
+          <LayoutDashboard size={24} className="text-white" />
+        </div>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{t('dashboard')}</h1>
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+            {t('allActiveSkills')}
+          </p>
+        </div>
       </div>
 
       {/* Stats Row */}

@@ -357,24 +357,23 @@ body {
 
 /* Frontmatter metadata table */
 .frontmatter-wrapper {
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 1em;
+}
+.dark .frontmatter-wrapper {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.02);
 }
 .frontmatter-table {
   width: 100%;
   font-size: 0.8rem;
   border-spacing: 0;
-  border-collapse: collapse;
   margin: 0 !important;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-}
-.dark .frontmatter-table {
-  border-color: rgba(255, 255, 255, 0.1);
 }
 .frontmatter-table td {
-  border: none !important;
+  border: none;
 }
 .frontmatter-key {
   padding: 0.5em 0.8em;
@@ -389,9 +388,9 @@ body {
 }
 .dark .frontmatter-key {
   color: #d1d5db;
-  background: rgba(255, 255, 255, 0.04);
-  border-bottom-color: rgba(255, 255, 255, 0.06) !important;
-  border-right-color: rgba(255, 255, 255, 0.06) !important;
+  background: rgba(255, 255, 255, 0.06);
+  border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+  border-right-color: rgba(255, 255, 255, 0.1) !important;
 }
 .frontmatter-value {
   padding: 0.5em 0.8em;
@@ -399,9 +398,21 @@ body {
   border-bottom: 1px solid #e5e7eb !important;
   line-height: 1.5;
 }
+.frontmatter-value p {
+  margin: 0;
+}
+.frontmatter-value code {
+  font-size: 0.85em;
+  padding: 0.15em 0.4em;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 3px;
+}
+.dark .frontmatter-value code {
+  background: rgba(255, 255, 255, 0.1);
+}
 .dark .frontmatter-value {
-  color: #9ca3af;
-  border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+  color: #b0b8c4;
+  border-bottom-color: rgba(255, 255, 255, 0.1) !important;
 }
 .frontmatter-table tr:last-child .frontmatter-key,
 .frontmatter-table tr:last-child .frontmatter-value {

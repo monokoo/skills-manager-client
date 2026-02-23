@@ -34,6 +34,9 @@ interface InstallStatus {
   securityReport?: SecurityReport;
 }
 
+const TAB_ACTIVE_STYLE = 'bg-white dark:bg-white/10 text-emerald-600 dark:text-emerald-400 shadow-sm';
+const TAB_INACTIVE_STYLE = 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300';
+
 const BatchActionBar = ({ 
   selectedCount, 
   onInstall, 
@@ -53,27 +56,24 @@ const BatchActionBar = ({
       initial={{ y: 20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 20, opacity: 0 }}
-      className="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-2xl px-2 md:px-4"
+      className="fixed bottom-32 left-4 right-4 z-50 mx-auto max-w-lg"
     >
-      <div className="bg-white/60 dark:bg-black/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-3xl p-2 md:p-3 shadow-2xl flex items-center justify-between gap-2 md:gap-4">
-        <div className="flex items-center gap-2 md:gap-4 pl-1 md:pl-3">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider hidden xs:block">{t('batchMode')}</span>
-            <span className="text-xs md:text-sm font-black text-blue-500">
-              {selectedCount} <span className="hidden sm:inline">{t('selected')}</span>
-            </span>
-          </div>
-          <div className="h-6 md:h-8 w-px bg-gray-200 dark:bg-white/10" />
-          <div className="flex gap-1 md:gap-2">
+      <div className="bg-white/60 dark:bg-black/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-2xl p-1.5 md:p-2 shadow-2xl flex items-center justify-between gap-1.5 md:gap-3">
+        <div className="flex items-center gap-1.5 md:gap-3 pl-1 md:pl-2">
+          <span className="text-xs font-black text-blue-500 whitespace-nowrap">
+            {selectedCount} {t('selected')}
+          </span>
+          <div className="h-5 w-px bg-gray-200 dark:bg-white/10" />
+          <div className="flex gap-1">
             <button
               onClick={onSelectAll}
-              className="px-2 md:px-3 py-1 md:py-1.5 rounded-xl text-[10px] md:text-xs font-bold hover:bg-black/5 dark:hover:bg-white/5 transition-colors whitespace-nowrap"
+              className="px-2 py-1 rounded-lg text-[10px] md:text-xs font-bold hover:bg-black/5 dark:hover:bg-white/5 transition-colors whitespace-nowrap"
             >
               {t('selectAll')}
             </button>
             <button
               onClick={onClear}
-              className="px-2 md:px-3 py-1 md:py-1.5 rounded-xl text-[10px] md:text-xs font-bold text-red-500 hover:bg-red-500/10 transition-colors whitespace-nowrap"
+              className="px-2 py-1 rounded-lg text-[10px] md:text-xs font-bold text-red-500 hover:bg-red-500/10 transition-colors whitespace-nowrap"
             >
               {t('clear')}
             </button>
@@ -81,17 +81,16 @@ const BatchActionBar = ({
         </div>
 
         <button
-          className="h-10 md:h-11 px-3 md:px-6 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl font-bold text-xs md:text-sm shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 disabled:opacity-50"
+          className="h-8 md:h-9 px-3 md:px-5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-bold text-xs shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 disabled:opacity-50"
           onClick={onInstall}
           disabled={selectedCount === 0 || isInstalling}
         >
           {isInstalling ? (
             <span className="loading loading-spinner loading-xs" />
           ) : (
-            <Download size={16} className="md:w-[18px] md:h-[18px]" />
+            <Download size={14} />
           )}
-          <span className="hidden xs:inline">{t('installToProject', { count: selectedCount })}</span>
-          <span className="xs:hidden">{t('install')}</span>
+          <span>{t('install')}</span>
         </button>
       </div>
     </motion.div>
@@ -534,27 +533,24 @@ const Marketplace = () => {
 
       <StickyHeader>
       {/* Header Section */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl">
-              <Sparkles size={24} className="text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('marketplace')}</h1>
+      <div className="flex justify-between items-center gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl shrink-0">
+            <Sparkles size={24} className="text-white" />
           </div>
-          <p className="text-gray-500 dark:text-gray-400 text-lg">
-            {t('marketplaceDesc')}
-          </p>
-          <div className="flex items-center gap-3 mt-2">
-             <span className="stat-badge bg-primary/10 text-primary">
-              {t('marketplaceSkillsCount', { count: aggregatedSkills.length })}
-            </span>
-            <span className="stat-badge bg-success/10 text-success">
-              {t('installedCount', { count: installedSkills.length })}
-            </span>
-            <span className="stat-badge bg-orange-500/10 text-orange-500">
-              Claude Code
-            </span>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{t('marketplace')}</h1>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-xs sm:text-sm text-primary font-medium">
+                {t('marketplaceSkillsCount', { count: aggregatedSkills.length })}
+              </span>
+              <span className="text-xs sm:text-sm text-success font-medium">
+                {t('installedCount', { count: installedSkills.length })}
+              </span>
+              <span className="text-xs sm:text-sm text-orange-500 font-medium">
+                Claude Code
+              </span>
+            </div>
           </div>
         </div>
 
@@ -598,8 +594,8 @@ const Marketplace = () => {
           onClick={() => { setActiveTab('official'); if (batchMode) { setBatchMode(false); clearBatchSelect(); } }}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
             activeTab === 'official'
-              ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              ? TAB_ACTIVE_STYLE
+              : TAB_INACTIVE_STYLE
           }`}
         >
           <Sparkles size={14} />
@@ -609,8 +605,8 @@ const Marketplace = () => {
           onClick={() => { setActiveTab('skillssh'); setPage(1); if (batchMode) { setBatchMode(false); clearBatchSelect(); } }}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
             activeTab === 'skillssh'
-              ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              ? TAB_ACTIVE_STYLE
+              : TAB_INACTIVE_STYLE
           }`}
         >
           <Globe size={14} />
@@ -620,8 +616,8 @@ const Marketplace = () => {
           onClick={() => { setActiveTab('custom'); if (batchMode) { setBatchMode(false); clearBatchSelect(); } }}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
             activeTab === 'custom'
-              ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              ? TAB_ACTIVE_STYLE
+              : TAB_INACTIVE_STYLE
           }`}
         >
           <GitFork size={14} />
@@ -778,14 +774,19 @@ const Marketplace = () => {
                         }`}>
                           {isSelected ? t('selected') : t('clickToSelect')}
                         </div>
+                      ) : batchMode && installed ? (
+                        <div className="h-10 flex items-center px-4 text-xs font-bold rounded-xl bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-white/5 cursor-not-allowed">
+                          <Check size={12} className="mr-1.5" />
+                          {t('installed')}
+                        </div>
                       ) : !batchMode && (
                         <motion.button
                           whileHover={{ scale: 1.05, boxShadow: installed ? "0 10px 15px -3px rgba(20, 184, 166, 0.3)" : "0 10px 15px -3px rgba(16, 185, 129, 0.3)" }}
                           whileTap={{ scale: 0.95 }}
-                          className={`h-10 px-5 flex items-center gap-2 rounded-xl text-sm font-medium text-white shadow-lg transition-all ${
+                          className={`h-10 px-5 flex items-center gap-2 rounded-xl text-sm font-medium shadow-lg transition-all ${
                             installed
-                              ? 'bg-gradient-to-r from-teal-500 to-emerald-600 shadow-teal-500/25 hover:from-teal-600 hover:to-emerald-700'
-                              : 'bg-gradient-to-r from-emerald-500 to-teal-500 shadow-emerald-500/25 hover:from-emerald-600 hover:to-teal-600'
+                              ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/30 shadow-none hover:bg-teal-500/20'
+                              : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-emerald-500/25 hover:from-emerald-600 hover:to-teal-600'
                           }`}
                           onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();

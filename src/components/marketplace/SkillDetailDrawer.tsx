@@ -3,11 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Star, GitFork, ExternalLink, Clock, Download, AlertCircle, FileText } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
-import Markdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
+import { MarkdownContent } from '../shared/MarkdownContent';
 import type { MarketplaceSkill } from '../../types';
-import { parseFrontmatter } from '../../lib/markdownUtils';
 
 // --- Types ---
 
@@ -122,31 +119,6 @@ function formatDate(dateStr: string): string {
   return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-// Markdown renderer with frontmatter metadata card and GFM support
-function MarkdownContent({ content }: { content: string }) {
-  const { meta, body } = parseFrontmatter(content);
-  const metaEntries = Object.entries(meta);
-
-  return (
-    <>
-      {metaEntries.length > 0 && (
-        <div className="frontmatter-wrapper">
-          <table className="frontmatter-table">
-            <tbody>
-              {metaEntries.map(([key, value]) => (
-                <tr key={key}>
-                  <td className="frontmatter-key">{key}</td>
-                  <td className="frontmatter-value">{value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{body}</Markdown>
-    </>
-  );
-}
 
 // --- Component ---
 

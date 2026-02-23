@@ -320,6 +320,7 @@ const resources = {
 
       // Settings Detail
       adminRequired: "Admin required",
+      systemConfig: "System & agent configuration",
       nativeAgents: "Native Compatible Agents",
       agentsCount: "{{count}} agents",
       nativeAgentsDesc: "These agents auto-scan Claude Code skills directory, no configuration needed",
@@ -664,6 +665,7 @@ const resources = {
 
       // 设置详情
       adminRequired: "需管理员权限",
+      systemConfig: "系统与代理配置",
       nativeAgents: "原生兼容 Agents",
       agentsCount: "{{count}} 个",
       nativeAgentsDesc: "这些 Agents 自动扫描 Claude Code Skills 目录，无需额外配置",

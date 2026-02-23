@@ -1,12 +1,9 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { X, ExternalLink, Calendar, Download, FileText } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
-import Markdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
-import { parseFrontmatter } from '../../../lib/markdownUtils';
+import { MarkdownContent } from '../../../components/shared/MarkdownContent';
 import type { InstalledSkill } from '../../../types';
 
 interface MySkillDrawerProps {
@@ -23,31 +20,6 @@ const formatDate = (timestamp?: number) => {
   return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
-// Reuse the same MarkdownContent pattern as SkillDetailDrawer
-function MarkdownContent({ content }: { content: string }) {
-  const { meta, body } = useMemo(() => parseFrontmatter(content), [content]);
-  const metaEntries = Object.entries(meta);
-
-  return (
-    <>
-      {metaEntries.length > 0 && (
-        <div className="frontmatter-wrapper">
-          <table className="frontmatter-table">
-            <tbody>
-              {metaEntries.map(([key, value]) => (
-                <tr key={key}>
-                  <td className="frontmatter-key">{key}</td>
-                  <td className="frontmatter-value">{value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{body}</Markdown>
-    </>
-  );
-}
 
 export const MySkillDrawer: React.FC<MySkillDrawerProps> = ({
   skill,
