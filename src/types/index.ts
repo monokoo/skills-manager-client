@@ -15,6 +15,7 @@ export interface MarketplaceSkill {
   branch: string;
   sourceType?: 'official' | 'custom' | 'skillssh';
   installs?: number;
+
 }
 
 export interface InstalledSkill extends Partial<MarketplaceSkill> {

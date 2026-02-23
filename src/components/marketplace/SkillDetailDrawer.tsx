@@ -17,6 +17,7 @@ interface RepoDetail {
   updated_at: string;
   language: string;
   license: { name: string } | null;
+  default_branch: string;
 }
 
 interface DrawerState {
@@ -225,7 +226,8 @@ export default function SkillDetailDrawer({
 
       if (skillName) {
         try {
-          const treeRes = await fetch(`${base}/git/trees/main?recursive=1`, { signal });
+          const branch = repo?.default_branch || 'main';
+          const treeRes = await fetch(`${base}/git/trees/${branch}?recursive=1`, { signal });
           if (treeRes.ok) {
             const treeData = await treeRes.json() as { tree: { path: string; type: string }[] };
             // Find SKILL.md whose parent directory matches or contains the skill name
@@ -248,7 +250,7 @@ export default function SkillDetailDrawer({
                 docLabel = 'SKILL.md';
                 // Build source URL to the skill directory
                 const skillDir = matched.replace(/\/SKILL\.md$/, '');
-                resolvedSourceUrl = `https://github.com/${parsed.owner}/${parsed.repo}/tree/main/${skillDir}`;
+                resolvedSourceUrl = `https://github.com/${parsed.owner}/${parsed.repo}/tree/${branch}/${skillDir}`;
               }
             }
           }

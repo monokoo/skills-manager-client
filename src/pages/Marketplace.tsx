@@ -194,7 +194,6 @@ const Marketplace = () => {
   const handleInstall = async (skill: any, overridePath?: string) => {
     if (installingSkillId) return;
 
-
     setInstallTarget(null);
     setInstallingSkillId(skill.id);
 
@@ -279,7 +278,7 @@ const Marketplace = () => {
     if (skillsToInstall.length === 0) return;
 
     // Overwrite check: confirm before overwriting already-installed skills
-    const existingSkills = skillsToInstall.filter(s => isInstalled(s.id, s.name));
+    const existingSkills = skillsToInstall.filter(s => isInstalled(s.id, s.name, s.githubUrl));
     if (existingSkills.length > 0) {
       const names = existingSkills.map(s => `  • ${s.name}`).join('\n');
       let confirmed = false;
@@ -358,18 +357,31 @@ const Marketplace = () => {
   };
 
   const handleOpenSource = async (url: string) => {
+    // Always open repo root (strip /tree/branch/path if present)
+    let repoRoot = url;
     try {
-        await invoke('open_url', { url });
+      const u = new URL(url);
+      const parts = u.pathname.split('/').filter(Boolean);
+      if (parts.length >= 2) {
+        repoRoot = `${u.origin}/${parts[0]}/${parts[1]}`;
+      }
+    } catch { /* use original url */ }
+    try {
+        await invoke('open_url', { url: repoRoot });
     } catch (error) {
         console.error('Failed to open URL:', error);
         alert(t('openUrlError', { error }));
     }
   };
 
-  const isInstalled = (skillId: string, skillName?: string) => {
-    return installedSkills.some(s =>
-      s.id === skillId || s.name === skillId || (skillName && s.name === skillName)
-    );
+  const isInstalled = (skillId: string, skillName?: string, githubUrl?: string) => {
+    return installedSkills.some(s => {
+      if (s.id === skillId || s.name === skillId) return true;
+      if (githubUrl && s.sourceUrl) return s.sourceUrl === githubUrl;
+      // Fallback: name match only when neither side has sourceUrl (local/manual installs)
+      if (skillName && !githubUrl && !s.sourceUrl) return s.name === skillName;
+      return false;
+    });
   };
 
   const mapCustomToMarketplace = (skill: CustomMarketplaceSkill): MarketplaceSkill => ({
@@ -641,7 +653,7 @@ const Marketplace = () => {
             }}
             onSelectAll={() => {
               const uninstalledIdsInCurrentPage = currentSkills
-                .filter(s => !isInstalled(s.id, s.name))
+                .filter(s => !isInstalled(s.id, s.name, s.githubUrl))
                 .map(s => s.id);
               selectAllBatch(uninstalledIdsInCurrentPage);
             }}
@@ -665,7 +677,7 @@ const Marketplace = () => {
           {/* Skills Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pt-4">
             {currentSkills.map((skill) => {
-              const installed = isInstalled(skill.id, skill.name);
+              const installed = isInstalled(skill.id, skill.name, skill.githubUrl);
               const isCurrentlyInstalling = installingSkillId === skill.id;
               const isSelected = batchSelectedSkills.includes(skill.id);
               return (
@@ -952,6 +964,34 @@ const Marketplace = () => {
                 </button>
                 <button
                   onClick={async () => {
+                    // Check for same-name skill from a different source before installing
+                    const sameNameSkill = installedSkills.find(s =>
+                      s.name === installTarget.name && s.sourceUrl !== installTarget.githubUrl
+                    );
+                    if (sameNameSkill) {
+                      let confirmed = false;
+                      const msg = t('overwriteDifferentSource', {
+                        name: installTarget.name,
+                        existingSource: sameNameSkill.sourceUrl || t('localSource'),
+                        defaultValue: `"${installTarget.name}" is already installed from a different source (${sameNameSkill.sourceUrl || 'local'}). Installing will overwrite the existing skill. Continue?`,
+                      });
+                      try {
+                        if ((window as any).__TAURI_INTERNALS__) {
+                          const { confirm: tauriConfirm } = await import('@tauri-apps/plugin-dialog');
+                          confirmed = await tauriConfirm(msg, {
+                            title: t('overwriteConfirmTitle'),
+                            okLabel: t('overwriteConfirm'),
+                            cancelLabel: t('cancel'),
+                          });
+                        } else {
+                          confirmed = window.confirm(msg);
+                        }
+                      } catch {
+                        confirmed = window.confirm(msg);
+                      }
+                      if (!confirmed) return;
+                    }
+
                     setInstallTarget(null);
                     if (installLevel !== 'project' || selectedProjectIndices.length === 0) {
                       handleInstall(installTarget, undefined);
@@ -1094,7 +1134,7 @@ const Marketplace = () => {
         isOpen={selectedSkill !== null}
         onClose={() => setSelectedSkill(null)}
         onInstall={(s) => { setSelectedSkill(null); openInstallConfirm(s); }}
-        isInstalled={selectedSkill ? isInstalled(selectedSkill.id, selectedSkill.name) : false}
+        isInstalled={selectedSkill ? isInstalled(selectedSkill.id, selectedSkill.name, selectedSkill.githubUrl) : false}
       />
     </div>
   );

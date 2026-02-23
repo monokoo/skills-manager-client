@@ -213,6 +213,9 @@ pub struct ImportGithubRequest {
     pub install_path: Option<String>,
     #[serde(rename = "skipSecurityCheck")]
     pub skip_security_check: bool,
+    // Expected skill name (for mono-repo skill discovery)
+    #[serde(rename = "skillName")]
+    pub skill_name: Option<String>,
     // 市场元数据（从市场安装时传入）
     #[serde(rename = "isMarketplace")]
     pub is_marketplace: Option<bool>,
@@ -554,9 +557,15 @@ fn parse_skill_md(path: &PathBuf, skill_type: &str) -> Option<SkillInfo> {
 
 fn aggregate_skills(skills: Vec<SkillInfo>) -> Vec<SkillInfo> {
     use std::collections::HashMap;
-    let mut map: HashMap<String, SkillInfo> = HashMap::new();
+    // Key by (name, source_url) so same-name skills from different repos stay separate,
+    // while same-name same-source skills (multi-path installs) get merged.
+    let mut map: HashMap<(String, Option<String>), SkillInfo> = HashMap::new();
     for skill in skills {
-        map.entry(skill.name.clone())
+        let key = (
+            skill.name.clone(),
+            skill.source.as_ref().and_then(|_| skill.source_url.clone()),
+        );
+        map.entry(key)
             .and_modify(|existing| {
                 for p in &skill.paths {
                     if !existing.paths.contains(p) {
@@ -685,6 +694,19 @@ fn get_custom_data_dir() -> Result<PathBuf, String> {
     Ok(dir)
 }
 
+/// Detect the actual default branch of a cloned repo via `git symbolic-ref`.
+fn detect_default_branch(repo_dir: &std::path::Path) -> Option<String> {
+    Command::new("git")
+        .current_dir(repo_dir)
+        .args(["symbolic-ref", "--short", "HEAD"])
+        .output()
+        .ok()
+        .and_then(|o| if o.status.success() {
+            let s = String::from_utf8_lossy(&o.stdout).trim().to_string();
+            if s.is_empty() { None } else { Some(s) }
+        } else { None })
+}
+
 fn parse_github_url(url: &str) -> Result<ParsedGithubUrl, String> {
     let url = url.trim_end_matches('/');
 
@@ -770,7 +792,7 @@ async fn import_github_skill(request: ImportGithubRequest) -> Result<ImportResul
             };
         }
 
-        let target_dir = install_dir.join(&parsed.skill_name);
+        let mut target_dir = install_dir.join(&parsed.skill_name);
 
         if parsed.has_subpath && !parsed.subpath.is_empty() {
             let branch = if parsed.branch.is_empty() { "main".to_string() } else { parsed.branch.clone() };
@@ -883,24 +905,221 @@ async fn import_github_skill(request: ImportGithubRequest) -> Result<ImportResul
 
             let _ = fs::remove_dir_all(&temp_dir);
         } else {
-            let _ = fs::remove_dir_all(&target_dir);
+            // Single lightweight clone: tree metadata only (~KB), then selective checkout
+            let expected_name = request.skill_name.as_deref().unwrap_or(&parsed.skill_name);
+            let temp_dir = install_dir.join(format!(".tmp-tree-{}", parsed.skill_name));
+            let _ = fs::remove_dir_all(&temp_dir);
 
-            let output = Command::new("git")
-                .args(["clone", "--depth", "1", &parsed.repo_base, target_dir.to_str().unwrap()])
+            let temp_path = temp_dir.to_str().unwrap_or_default();
+            let tree_clone = Command::new("git")
+                .args(["clone", "--depth", "1", "--filter=blob:none", "--no-checkout",
+                       &parsed.repo_base, temp_path])
                 .output();
 
-            match output {
-                Err(e) => return ImportResult {
-                    success: false,
-                    message: format!("Git command failed: {}", e),
-                    blocked: false,
-                },
-                Ok(o) if !o.status.success() => return ImportResult {
-                    success: false,
-                    message: format!("Git clone failed: {}", String::from_utf8_lossy(&o.stderr)),
-                    blocked: false,
-                },
+            match tree_clone {
+                Err(e) => {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return ImportResult {
+                        success: false,
+                        message: format!("Git clone failed: {}", e),
+                        blocked: false,
+                    };
+                }
+                Ok(o) if !o.status.success() => {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return ImportResult {
+                        success: false,
+                        message: format!("Git clone failed: {}", String::from_utf8_lossy(&o.stderr)),
+                        blocked: false,
+                    };
+                }
                 _ => {}
+            }
+
+            // List all file paths to locate SKILL.md (no blob content downloaded)
+            let ls_output = Command::new("git")
+                .current_dir(&temp_dir)
+                .args(["ls-tree", "-r", "--name-only", "HEAD"])
+                .output();
+
+            let tree_listing = match ls_output {
+                Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout).to_string(),
+                _ => {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return ImportResult {
+                        success: false,
+                        message: "Failed to list repository contents".to_string(),
+                        blocked: false,
+                    };
+                }
+            };
+
+            // Determine SKILL.md location: root vs subdirectory
+            let has_root_skill = tree_listing.lines().any(|l| l == "SKILL.md");
+            let subpath_skill = if !has_root_skill {
+                let pattern = format!("{}/SKILL.md", expected_name);
+                tree_listing.lines()
+                    .find(|line| line.ends_with(&pattern))
+                    .map(|line| line.trim_end_matches("/SKILL.md").to_string())
+            } else {
+                None
+            };
+
+            if has_root_skill {
+                // Normal repo: checkout all content (blobs fetched lazily on demand)
+                let co = Command::new("git")
+                    .current_dir(&temp_dir)
+                    .args(["checkout"])
+                    .output();
+
+                match co {
+                    Err(e) => {
+                        let _ = fs::remove_dir_all(&temp_dir);
+                        return ImportResult {
+                            success: false,
+                            message: format!("Git checkout failed: {}", e),
+                            blocked: false,
+                        };
+                    }
+                    Ok(o) if !o.status.success() => {
+                        let _ = fs::remove_dir_all(&temp_dir);
+                        return ImportResult {
+                            success: false,
+                            message: format!("Git checkout failed: {}", String::from_utf8_lossy(&o.stderr)),
+                            blocked: false,
+                        };
+                    }
+                    _ => {}
+                }
+
+                // Move to target_dir
+                let _ = fs::remove_dir_all(&target_dir);
+                if let Err(e) = fs::rename(&temp_dir, &target_dir) {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return ImportResult {
+                        success: false,
+                        message: format!("Failed to move skill directory: {}", e),
+                        blocked: false,
+                    };
+                }
+                // Clean up .git directory from installed skill
+                let _ = fs::remove_dir_all(target_dir.join(".git"));
+            } else if let Some(subpath) = subpath_skill {
+                // Mono-repo: sparse checkout only the skill subdirectory
+                let sc = Command::new("git")
+                    .current_dir(&temp_dir)
+                    .args(["sparse-checkout", "set", &subpath])
+                    .output();
+
+                match sc {
+                    Err(e) => {
+                        let _ = fs::remove_dir_all(&temp_dir);
+                        return ImportResult {
+                            success: false,
+                            message: format!("Sparse checkout failed: {}", e),
+                            blocked: false,
+                        };
+                    }
+                    Ok(o) if !o.status.success() => {
+                        let _ = fs::remove_dir_all(&temp_dir);
+                        return ImportResult {
+                            success: false,
+                            message: format!("Sparse checkout failed: {}", String::from_utf8_lossy(&o.stderr)),
+                            blocked: false,
+                        };
+                    }
+                    _ => {}
+                }
+
+                let co = Command::new("git")
+                    .current_dir(&temp_dir)
+                    .args(["checkout"])
+                    .output();
+
+                match co {
+                    Err(e) => {
+                        let _ = fs::remove_dir_all(&temp_dir);
+                        return ImportResult {
+                            success: false,
+                            message: format!("Git checkout failed: {}", e),
+                            blocked: false,
+                        };
+                    }
+                    Ok(o) if !o.status.success() => {
+                        let _ = fs::remove_dir_all(&temp_dir);
+                        return ImportResult {
+                            success: false,
+                            message: format!("Git checkout failed: {}", String::from_utf8_lossy(&o.stderr)),
+                            blocked: false,
+                        };
+                    }
+                    _ => {}
+                }
+
+                let source_dir = temp_dir.join(&subpath);
+                if !source_dir.exists() {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return ImportResult {
+                        success: false,
+                        message: format!("Sparse checkout succeeded but skill directory not found at '{}'", subpath),
+                        blocked: false,
+                    };
+                }
+
+                // Get commit hash before moving
+                let commit_hash = Command::new("git")
+                    .current_dir(&temp_dir)
+                    .args(["rev-parse", "HEAD"])
+                    .output()
+                    .ok()
+                    .and_then(|o| if o.status.success() {
+                        Some(String::from_utf8_lossy(&o.stdout).trim().to_string())
+                    } else { None });
+
+                // Move skill subdirectory to final install location
+                let final_dir = install_dir.join(expected_name);
+                let _ = fs::remove_dir_all(&final_dir);
+                if let Err(e) = fs::rename(&source_dir, &final_dir) {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return ImportResult {
+                        success: false,
+                        message: format!("Failed to move skill directory: {}", e),
+                        blocked: false,
+                    };
+                }
+                let _ = fs::remove_dir_all(&temp_dir);
+                target_dir = final_dir;
+
+                // Save metadata with full marketplace info
+                let metadata = SkillMetadata {
+                    source: "github".to_string(),
+                    source_url: Some(request.repo_url.clone()),
+                    install_date: current_timestamp(),
+                    commit_hash,
+                    version: request.version.clone(),
+                    author: request.author.clone(),
+                    description: request.description.clone(),
+                    description_zh: request.description_zh.clone(),
+                    description_en: request.description_en.clone(),
+                };
+                let _ = save_skill_metadata(&target_dir, &metadata);
+
+                return ImportResult {
+                    success: true,
+                    message: format!("Successfully installed {} from mono-repo to {}", expected_name, target_dir.display()),
+                    blocked: false,
+                };
+            } else {
+                // SKILL.md not found anywhere
+                let _ = fs::remove_dir_all(&temp_dir);
+                return ImportResult {
+                    success: false,
+                    message: format!(
+                        "Skill '{}' not found in repository '{}'. Please provide the direct GitHub URL with the path to the skill directory (e.g. .../tree/main/path/to/{}).",
+                        expected_name, parsed.repo_base, expected_name
+                    ),
+                    blocked: false,
+                };
             }
         }
 
@@ -1965,7 +2184,7 @@ async fn add_custom_source(url: String) -> Result<CustomSource, String> {
             .map_err(|e| format!("Failed to create temp dir: {}", e))?;
 
         // Clone repo
-        let branch = if parsed.branch.is_empty() { "main".to_string() } else { parsed.branch.clone() };
+        let mut branch = if parsed.branch.is_empty() { "main".to_string() } else { parsed.branch.clone() };
         if parsed.has_subpath && !parsed.subpath.is_empty() {
             let output = Command::new("git")
                 .args(["clone", "--depth", "1", "--filter=blob:none", "--sparse",
@@ -1975,6 +2194,10 @@ async fn add_custom_source(url: String) -> Result<CustomSource, String> {
             if !output.status.success() {
                 let _ = fs::remove_dir_all(&temp_dir);
                 return Err(format!("Git clone failed: {}", String::from_utf8_lossy(&output.stderr)));
+            }
+            // Detect actual default branch from cloned repo
+            if parsed.branch.is_empty() {
+                if let Some(b) = detect_default_branch(&temp_dir) { branch = b; }
             }
             let sparse = Command::new("git")
                 .current_dir(&temp_dir)
@@ -2002,6 +2225,10 @@ async fn add_custom_source(url: String) -> Result<CustomSource, String> {
             if !output.status.success() {
                 let _ = fs::remove_dir_all(&temp_dir);
                 return Err(format!("Git clone failed: {}", String::from_utf8_lossy(&output.stderr)));
+            }
+            // Detect actual default branch from cloned repo
+            if parsed.branch.is_empty() {
+                if let Some(b) = detect_default_branch(&temp_dir) { branch = b; }
             }
         }
 

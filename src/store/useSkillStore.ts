@@ -361,7 +361,8 @@ export const useSkillStore = create<SkillStore>()(
           request: {
             repoUrl: skill.githubUrl,
             installPath,
-            skipSecurityCheck: false
+            skipSecurityCheck: false,
+            skillName: skill.name,
           }
         });
 

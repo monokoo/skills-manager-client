@@ -264,7 +264,7 @@ const resources = {
       securityScoreLabel: "Security Score:",
       foundIssuesCount: "Found {{count}} potential issues",
       criticalRiskDetected: "Critical security risk detected! Check Security Center for details.",
-      source: "Source",
+      source: "Repo",
       selected: "Selected",
       clickToSelect: "Click to select",
       loadingSkills: "Loading Skills...",
@@ -308,6 +308,8 @@ const resources = {
       noDataSources: "No data sources available",
       noDataSourcesHint: "Enable official source or add custom sources in Settings",
       goToSettings: "Go to Settings",
+      overwriteDifferentSource: "\"{{name}}\" is already installed from a different source ({{existingSource}}). Installing will overwrite the existing skill. Continue?",
+      localSource: "local",
 
       // Settings - Data Source
       dataSourceManagement: "Data Source Management",
@@ -606,7 +608,7 @@ const resources = {
       securityScoreLabel: "安全评分:",
       foundIssuesCount: "发现 {{count}} 个潜在问题",
       criticalRiskDetected: "检测到严重安全风险！请在安全中心查看详情。",
-      source: "源码",
+      source: "仓库",
       selected: "已选中",
       clickToSelect: "点击选择",
       loadingSkills: "正在加载 Skills...",
@@ -650,6 +652,8 @@ const resources = {
       noDataSources: "暂无可用数据源",
       noDataSourcesHint: "请在设置中启用官方源或添加自定义源",
       goToSettings: "前往设置",
+      overwriteDifferentSource: "\"{{name}}\" 已从其他源安装（{{existingSource}}），继续安装将覆盖现有的 Skill。是否继续？",
+      localSource: "本地",
 
       // 设置 - 数据源
       dataSourceManagement: "数据源管理",
