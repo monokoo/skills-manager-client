@@ -11,7 +11,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { SearchBox } from '../components/ui/SearchBox';
 import { StickyHeader } from '../components/ui/StickyHeader';
 import { SkillRow } from './my-skills/components/SkillRow';
-import { ViewSkillModal } from './my-skills/components/ViewSkillModal';
+import { MySkillDrawer } from './my-skills/components/MySkillDrawer';
 import { DeletePathsModal } from './my-skills/components/DeletePathsModal';
 import { ImportSkillModal } from './my-skills/components/ImportSkillModal';
 
@@ -68,7 +68,7 @@ const MySkills = () => {
 
   // ── 3. 操作 Hooks ─────────────────────────────────────────
   const {
-    selectedSkill, showViewModal, skillContent, handleViewSkill, closeViewModal,
+    selectedSkill, showSkillDrawer, handleViewSkill, closeSkillDrawer,
     deleteTarget, selectedDeletePaths, isDeleting, handleUninstall, closeDeleteModal, toggleDeletePath, handleConfirmDelete,
     updatingSkillId, handleSingleUpdate,
   } = useSkillActions(store.scanLocalSkills, showToast, t);
@@ -379,11 +379,10 @@ const MySkills = () => {
       </div>
 
       {/* Modals Section */}
-      <ViewSkillModal
-        isOpen={showViewModal}
+      <MySkillDrawer
+        isOpen={showSkillDrawer}
         skill={selectedSkill}
-        content={skillContent}
-        onClose={closeViewModal}
+        onClose={closeSkillDrawer}
         onUpdate={handleUpdate}
         isUpdating={updatingSkillId === (selectedSkill?.id || '')}
       />

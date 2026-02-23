@@ -16,35 +16,22 @@ export const useSkillActions = (
   t: (key: string, options?: any) => string
 ) => {
   const [selectedSkill, setSelectedSkill] = useState<InstalledSkill | null>(null);
-  const [showViewModal, setShowViewModal] = useState(false);
-  const [skillContent, setSkillContent] = useState<string>('');
+  const [showSkillDrawer, setShowSkillDrawer] = useState(false);
   
   const [deleteTarget, setDeleteTarget] = useState<InstalledSkill | null>(null);
   const [selectedDeletePaths, setSelectedDeletePaths] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const [updatingSkillId, setUpdatingSkillId] = useState<string | null>(null);
 
-  // 查看 Skill 详情
-  const handleViewSkill = useCallback(async (skill: InstalledSkill) => {
+  // View skill — Drawer handles its own data fetching
+  const handleViewSkill = useCallback((skill: InstalledSkill) => {
     setSelectedSkill(skill);
-    setShowViewModal(true);
-    setSkillContent(''); // Reset content while loading
+    setShowSkillDrawer(true);
+  }, []);
 
-    try {
-      const content = await invoke<string>('read_skill', {
-        skillPath: skill.localPath
-      });
-      setSkillContent(content);
-    } catch (error) {
-      console.error('Failed to load skill content:', error);
-      setSkillContent(`# ${skill.name}\n\n${skill.description}\n\n**${t('version')}**: ${skill.version}\n**${t('author')}**: ${skill.author}\n\n**${t('path')}**: ${skill.localPath}`);
-    }
-  }, [t]);
-
-  const closeViewModal = useCallback(() => {
-    setShowViewModal(false);
+  const closeSkillDrawer = useCallback(() => {
+    setShowSkillDrawer(false);
     setSelectedSkill(null);
-    setSkillContent('');
   }, []);
 
   // 卸载逻辑
@@ -110,10 +97,9 @@ export const useSkillActions = (
   return {
     // View state
     selectedSkill,
-    showViewModal,
-    skillContent,
+    showSkillDrawer,
     handleViewSkill,
-    closeViewModal,
+    closeSkillDrawer,
     // Delete state
     deleteTarget,
     selectedDeletePaths,
@@ -127,3 +113,4 @@ export const useSkillActions = (
     handleSingleUpdate
   };
 };
+

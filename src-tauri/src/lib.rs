@@ -2431,9 +2431,15 @@ async fn refresh_custom_source(id: Option<String>) -> Result<Vec<CustomSource>, 
 #[tauri::command(async)]
 async fn search_skills_sh(query: String) -> Result<serde_json::Value, String> {
     let result = tokio::task::spawn_blocking(move || {
-        let url = format!("https://skills.sh/api/search?q={}", urlencoding(&query));
+        let url = format!("https://skills.sh/api/search?q={}&limit=50", urlencoding(&query));
+        let ua = detect_chrome_ua();
         let output = Command::new("curl")
-            .args(["-s", "-m", "10", &url])
+            .args([
+                "-s", "-m", "10",
+                "-H", &format!("User-Agent: {}", ua),
+                "-H", "Accept: application/json",
+                &url,
+            ])
             .output()
             .map_err(|e| format!("curl failed: {}", e))?;
 
@@ -2447,6 +2453,84 @@ async fn search_skills_sh(query: String) -> Result<serde_json::Value, String> {
     }).await.map_err(|e| e.to_string())??;
 
     Ok(result)
+}
+
+/// Detect installed Chrome version; fallback to a reasonable default.
+/// Result is cached with OnceLock — only detects once per process lifetime.
+fn detect_chrome_ua() -> &'static str {
+    use std::sync::OnceLock;
+    static UA: OnceLock<String> = OnceLock::new();
+    UA.get_or_init(|| {
+        #[cfg(target_os = "windows")]
+        let platform = "Windows NT 10.0; Win64; x64";
+        #[cfg(target_os = "macos")]
+        let platform = "Macintosh; Intel Mac OS X 10_15_7";
+        #[cfg(target_os = "linux")]
+        let platform = "X11; Linux x86_64";
+        #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+        let platform = "Macintosh; Intel Mac OS X 10_15_7";
+
+        match get_chrome_version() {
+            Some(v) if !v.is_empty() => {
+                format!("Mozilla/5.0 ({}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{} Safari/537.36", platform, v)
+            }
+            _ => format!("Mozilla/5.0 ({}) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36", platform),
+        }
+    })
+}
+
+fn get_chrome_version() -> Option<String> {
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("defaults")
+            .args(["read", "/Applications/Google Chrome.app/Contents/Info", "CFBundleShortVersionString"])
+            .output()
+            .ok()
+            .and_then(|o| if o.status.success() { Some(String::from_utf8_lossy(&o.stdout).trim().to_string()) } else { None })
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        // Read from Windows registry: HKLM\SOFTWARE\Google\Chrome\BLBeacon\version
+        Command::new("reg")
+            .args(["query", r"HKLM\SOFTWARE\Google\Chrome\BLBeacon", "/v", "version"])
+            .output()
+            .ok()
+            .and_then(|o| {
+                if o.status.success() {
+                    let out = String::from_utf8_lossy(&o.stdout);
+                    // Output format: "    version    REG_SZ    131.0.6778.265"
+                    out.lines()
+                        .find(|l| l.contains("version"))
+                        .and_then(|l| l.split_whitespace().last())
+                        .map(|v| v.trim().to_string())
+                } else {
+                    None
+                }
+            })
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        Command::new("google-chrome")
+            .arg("--version")
+            .output()
+            .ok()
+            .and_then(|o| {
+                if o.status.success() {
+                    let out = String::from_utf8_lossy(&o.stdout);
+                    // Output: "Google Chrome 131.0.6778.265"
+                    out.split_whitespace().last().map(|v| v.trim().to_string())
+                } else {
+                    None
+                }
+            })
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
+        None
+    }
 }
 
 // Simple percent-encoding for URL query parameters

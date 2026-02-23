@@ -663,16 +663,16 @@ const Marketplace = () => {
         )}
       </AnimatePresence>
 
-      {(isLoading || isSearchingSkillsSh) && (
+      {(isLoading || (isSearchingSkillsSh && activeTab === 'skillssh')) && (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <span className="loading loading-spinner loading-lg text-primary"></span>
           <p className="text-base-content/60">
-            {isSearchingSkillsSh ? t('searchingSkillsSh', { defaultValue: '正在搜索 skills.sh...' }) : t('loadingSkills')}
+            {isSearchingSkillsSh && activeTab === 'skillssh' ? t('searchingSkillsSh', { defaultValue: '正在搜索 skills.sh...' }) : t('loadingSkills')}
           </p>
         </div>
       )}
 
-      {!isLoading && (
+      {!isLoading && !(isSearchingSkillsSh && activeTab === 'skillssh') && (
         <>
           {/* Skills Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pt-4">

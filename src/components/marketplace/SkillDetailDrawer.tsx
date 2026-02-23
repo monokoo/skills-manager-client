@@ -1,11 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Star, GitFork, ExternalLink, Clock, Download, AlertCircle } from 'lucide-react';
+import { X, Star, GitFork, ExternalLink, Clock, Download, AlertCircle, FileText } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import type { MarketplaceSkill } from '../../types';
+import { parseFrontmatter } from '../../lib/markdownUtils';
 
 // --- Types ---
 
@@ -120,30 +122,6 @@ function formatDate(dateStr: string): string {
   return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-// Parse YAML frontmatter into key-value pairs + body
-function parseFrontmatter(content: string): { meta: Record<string, string>; body: string } {
-  const trimmed = content.trimStart();
-  if (!trimmed.startsWith('---')) return { meta: {}, body: content };
-  const end = trimmed.indexOf('---', 3);
-  if (end === -1) return { meta: {}, body: content };
-
-  const raw = trimmed.slice(3, end).trim();
-  const meta: Record<string, string> = {};
-  let currentKey = '';
-  for (const line of raw.split('\n')) {
-    const match = line.match(/^(\w[\w\s]*?):\s*(.*)$/);
-    if (match) {
-      currentKey = match[1].trim();
-      meta[currentKey] = match[2].trim();
-    } else if (currentKey && line.startsWith('  ')) {
-      // Multi-line value continuation
-      meta[currentKey] += ' ' + line.trim();
-    }
-  }
-
-  return { meta, body: trimmed.slice(end + 3).trimStart() };
-}
-
 // Markdown renderer with frontmatter metadata card and GFM support
 function MarkdownContent({ content }: { content: string }) {
   const { meta, body } = parseFrontmatter(content);
@@ -165,7 +143,7 @@ function MarkdownContent({ content }: { content: string }) {
           </table>
         </div>
       )}
-      <Markdown remarkPlugins={[remarkGfm]}>{body}</Markdown>
+      <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{body}</Markdown>
     </>
   );
 }
@@ -323,7 +301,7 @@ export default function SkillDetailDrawer({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="relative w-full max-w-lg bg-white dark:bg-[#1E293B] border-l border-gray-200 dark:border-white/10 shadow-2xl h-full overflow-y-auto custom-scrollbar"
+            className="relative w-full max-w-xl bg-white dark:bg-[#1E293B] border-l border-gray-200 dark:border-white/10 shadow-2xl h-full overflow-y-auto custom-scrollbar"
           >
             {/* Close Button */}
             <button
@@ -443,9 +421,10 @@ export default function SkillDetailDrawer({
                 {/* Document Content */}
                 {state.readme && (
                   <div className="pt-4 border-t border-gray-200 dark:border-white/10">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-white/8 text-gray-600 dark:text-gray-300 rounded-t-lg text-xs font-mono font-semibold border border-b-0 border-gray-200 dark:border-white/10">
+                      <FileText size={12} />
                       {state.docLabel || 'README'}
-                    </h3>
+                    </div>
                     <div className="markdown-body">
                       <MarkdownContent content={state.readme} />
                     </div>

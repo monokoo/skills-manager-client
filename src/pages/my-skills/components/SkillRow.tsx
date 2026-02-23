@@ -80,7 +80,7 @@ export const SkillRow: React.FC<SkillRowProps> = React.memo(({
       </button>
 
       {/* Name, Description & Paths */}
-      <div className="flex-1 min-w-[180px]">
+      <div className="flex-1 min-w-[180px] cursor-pointer" onClick={() => onView(skill)}>
         <div className="flex items-center gap-2">
           <span className="font-semibold truncate">{skill.name}</span>
           {skill.version && (

@@ -11,12 +11,7 @@ export interface SkillRowProps {
   onUpdate: (id: string) => void;
 }
 
-export interface ViewSkillModalProps {
-  isOpen: boolean;
-  skill: InstalledSkill | null;
-  content: string;
-  onClose: () => void;
-}
+
 
 export interface DeletePathsModalProps {
   isOpen: boolean;

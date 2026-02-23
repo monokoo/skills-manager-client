@@ -357,18 +357,24 @@ body {
 
 /* Frontmatter metadata table */
 .frontmatter-wrapper {
-  border: 1px solid #e5e7eb;
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 1em;
-}
-.dark .frontmatter-wrapper {
-  border-color: rgba(255, 255, 255, 0.1);
 }
 .frontmatter-table {
   width: 100%;
   font-size: 0.8rem;
   border-spacing: 0;
+  border-collapse: collapse;
+  margin: 0 !important;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+.dark .frontmatter-table {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+.frontmatter-table td {
+  border: none !important;
 }
 .frontmatter-key {
   padding: 0.5em 0.8em;
