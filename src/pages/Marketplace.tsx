@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSkillStore } from '../store/useSkillStore';
-import { Download, Star, ExternalLink, Check, Loader2, Shield, ShieldCheck, ShieldAlert, X, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Package, RefreshCw, GitFork } from 'lucide-react';
+import { Download, Star, ExternalLink, Check, Loader2, Shield, ShieldCheck, ShieldAlert, X, CheckSquare, Square, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles, Package, RefreshCw, GitFork, Globe } from 'lucide-react';
 import { SearchBox } from '../components/ui/SearchBox';
 import { StickyHeader } from '../components/ui/StickyHeader';
 import { InstallLevelPicker, type InstallLevel } from '../components/ui/InstallLevelPicker';
@@ -9,7 +9,7 @@ import { getLocalizedDescription } from '../utils/i18n';
 import { invoke } from '@tauri-apps/api/core';
 import { motion, AnimatePresence } from 'framer-motion';
 import CustomSourcesTab from '../components/marketplace/CustomSourcesTab';
-import SourceFilterDropdown, { type SourceFilter } from '../components/marketplace/SourceFilterDropdown';
+
 import SkillDetailDrawer from '../components/marketplace/SkillDetailDrawer';
 import { useSkillsShSearch } from '../hooks/useSkillsShSearch';
 import type { MarketplaceSkill, CustomMarketplaceSkill } from '../types';
@@ -138,12 +138,11 @@ const Marketplace = () => {
     type: 'info'
   });
   const pageSize = 12;
-  const [activeTab, setActiveTab] = useState<'official' | 'custom'>('official');
-  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
-  // skills.sh search via Hook (HMR-safe, auto-debounce, auto-cancel)
+  const [activeTab, setActiveTab] = useState<'official' | 'skillssh' | 'custom'>('official');
+  // skills.sh search: enabled when user is searching globally (min 2 chars) OR browsing skillssh tab
   const { results: skillsShResults, isSearching: isSearchingSkillsSh } = useSkillsShSearch(
     searchTerm,
-    sourceFilter === 'skillssh'
+    searchTerm.trim().length >= 2 || activeTab === 'skillssh'
   );
   // Drawer state
   const [selectedSkill, setSelectedSkill] = useState<MarketplaceSkill | null>(null);
@@ -157,13 +156,6 @@ const Marketplace = () => {
     };
     loadData();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Reset sourceFilter when official source is disabled
-  useEffect(() => {
-    if (!officialSourceEnabled && sourceFilter === 'official') {
-      setSourceFilter('all');
-    }
-  }, [officialSourceEnabled, sourceFilter]);
 
   const toggleBatchSelect = (skillId: string) => {
     setBatchSelectedSkills(prev =>
@@ -398,29 +390,37 @@ const Marketplace = () => {
   });
 
   const getAggregatedSkills = (): MarketplaceSkill[] => {
-    switch (sourceFilter) {
-      case 'official':
-        return officialSourceEnabled ? marketplaceSkills : [];
-      case 'custom':
-        return customMarketplaceSkills.map(mapCustomToMarketplace);
+    const official = officialSourceEnabled ? marketplaceSkills : [];
+    const custom = customMarketplaceSkills.map(mapCustomToMarketplace);
+
+    // Global search: when searchTerm has >= 2 chars, merge all sources with dedup
+    if (searchTerm.trim().length >= 2) {
+      const localResults = [...official, ...custom];
+      const seenKeys = new Set(localResults.map(s => s.githubUrl || `${s.author}/${s.name}`));
+      const uniqueRemote = skillsShResults.filter(s => !seenKeys.has(s.githubUrl || `${s.author}/${s.name}`));
+      return [...localResults, ...uniqueRemote];
+    }
+
+    // Browse mode: return data based on active tab
+    switch (activeTab) {
       case 'skillssh':
         return skillsShResults;
-      case 'all':
-      default: {
-        const official = officialSourceEnabled ? marketplaceSkills : [];
-        const custom = customMarketplaceSkills.map(mapCustomToMarketplace);
+      case 'official':
+      default:
         return [...official, ...custom];
-      }
     }
   };
 
   const aggregatedSkills = getAggregatedSkills();
+  const isGlobalSearch = searchTerm.trim().length >= 2;
 
-  const filteredSkills = aggregatedSkills.filter(skill =>
-    skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    skill.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    skill.author.toLowerCase().includes(searchTerm.toLowerCase())
-  ).sort((a, b) => (b.stars || b.installs || 0) - (a.stars || a.installs || 0));
+  const filteredSkills = aggregatedSkills.filter(skill => {
+    // skills.sh results are already API-filtered, skip frontend filter in global search
+    if (isGlobalSearch && skill.sourceType === 'skillssh') return true;
+    return skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      skill.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      skill.author.toLowerCase().includes(searchTerm.toLowerCase());
+  }).sort((a, b) => (b.stars || b.installs || 0) - (a.stars || a.installs || 0));
 
   const totalPages = Math.ceil(filteredSkills.length / pageSize);
   const currentSkills = filteredSkills.slice((page - 1) * pageSize, page * pageSize);
@@ -565,15 +565,7 @@ const Marketplace = () => {
             {t('batchMode')}
           </button>
 
-          {/* Source Filter + Search */}
-          <SourceFilterDropdown
-            value={sourceFilter}
-            onChange={(val) => {
-              setSourceFilter(val);
-              setPage(1);
-            }}
-            officialEnabled={officialSourceEnabled}
-          />
+          {/* Search */}
           <SearchBox
             value={searchTerm}
             onChange={(val) => {
@@ -600,6 +592,17 @@ const Marketplace = () => {
         >
           <Sparkles size={14} />
           {t('officialMarketplace')}
+        </button>
+        <button
+          onClick={() => { setActiveTab('skillssh'); setPage(1); if (batchMode) { setBatchMode(false); clearBatchSelect(); } }}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+            activeTab === 'skillssh'
+              ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+          }`}
+        >
+          <Globe size={14} />
+          {t('skillsShTab')}
         </button>
         <button
           onClick={() => { setActiveTab('custom'); if (batchMode) { setBatchMode(false); clearBatchSelect(); } }}
@@ -710,8 +713,11 @@ const Marketplace = () => {
                       </div>
                       <div className="flex flex-col items-end gap-1">
                         <span className="text-[10px] font-black px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full flex items-center gap-1">
-                          <Star size={10} fill="currentColor" />
-                          {skill.stars.toLocaleString()}
+                          {skill.stars > 0 ? (
+                            <><Star size={10} fill="currentColor" />{skill.stars.toLocaleString()}</>
+                          ) : (
+                            <><Download size={10} />{(skill.installs ?? 0).toLocaleString()}</>
+                          )}
                         </span>
                         {showSourceBadge && skill.sourceType && skill.sourceType !== 'official' && (
                           <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${

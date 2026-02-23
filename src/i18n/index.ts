@@ -302,10 +302,8 @@ const resources = {
       supportedFormats: "Supported formats:",
 
       // Source Filter
-      sourceFilter: "Source",
-      sourceAll: "All",
-      sourceOfficial: "Official",
       sourceCustom: "Custom",
+      skillsShTab: "skills.sh",
       sourceComingSoon: "Coming Soon",
       noDataSources: "No data sources available",
       noDataSourcesHint: "Enable official source or add custom sources in Settings",
@@ -646,10 +644,8 @@ const resources = {
       supportedFormats: "支持的格式：",
 
       // 来源筛选
-      sourceFilter: "来源",
-      sourceAll: "全部",
-      sourceOfficial: "官方",
       sourceCustom: "自定义源",
+      skillsShTab: "skills.sh",
       sourceComingSoon: "即将推出",
       noDataSources: "暂无可用数据源",
       noDataSourcesHint: "请在设置中启用官方源或添加自定义源",
