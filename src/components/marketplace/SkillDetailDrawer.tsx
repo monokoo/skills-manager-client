@@ -44,6 +44,8 @@ interface SkillDetailDrawerProps {
 interface CachedDetail {
   repo: RepoDetail | null;
   readme: string;
+  sourceUrl: string;
+  docLabel: string;
   cachedAt: number;
 }
 
@@ -60,8 +62,8 @@ function getCachedDetail(key: string): CachedDetail | null {
   return entry;
 }
 
-function setCachedDetail(key: string, repo: RepoDetail | null, readme: string): void {
-  detailCache.set(key, { repo, readme, cachedAt: Date.now() });
+function setCachedDetail(key: string, repo: RepoDetail | null, readme: string, sourceUrl: string, docLabel: string): void {
+  detailCache.set(key, { repo, readme, sourceUrl, docLabel, cachedAt: Date.now() });
 }
 
 // --- Skeleton ---
@@ -200,7 +202,7 @@ export default function SkillDetailDrawer({
     // Check cache first
     const cached = getCachedDetail(cacheKey);
     if (cached) {
-      setState({ status: 'loaded', readme: cached.readme, repo: cached.repo, error: '', docLabel: 'README', sourceUrl: '' });
+      setState({ status: 'loaded', readme: cached.readme, repo: cached.repo, error: '', docLabel: cached.docLabel, sourceUrl: cached.sourceUrl });
       return;
     }
 
@@ -266,7 +268,7 @@ export default function SkillDetailDrawer({
       }
 
       // Write to cache
-      setCachedDetail(cacheKey, repo, readme);
+      setCachedDetail(cacheKey, repo, readme, resolvedSourceUrl, docLabel);
 
       setState({ status: 'loaded', readme, repo, error: '', docLabel, sourceUrl: resolvedSourceUrl });
     } catch (err: unknown) {
