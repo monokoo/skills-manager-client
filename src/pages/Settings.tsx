@@ -680,7 +680,7 @@ const Settings = () => {
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-base-content/60">{t('version')}</span>
-                <span className="font-mono font-semibold">v1.2.3</span>
+                <span className="font-mono font-semibold">v{__APP_VERSION__}</span>
               </div>
 
               <div className="flex items-center justify-between">

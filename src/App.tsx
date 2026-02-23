@@ -1,6 +1,6 @@
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import AppShell from './components/layout/AppShell';
-import Dashboard from './pages/Dashboard';
+// import Dashboard from './pages/Dashboard'; // temporarily disabled
 import MySkills from './pages/MySkills';
 import Marketplace from './pages/Marketplace';
 import Settings from './pages/Settings';
@@ -13,12 +13,13 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/dashboard" replace />,
+        element: <Navigate to="/my-skills" replace />,
       },
-      {
-        path: 'dashboard',
-        element: <Dashboard />,
-      },
+      // Dashboard temporarily disabled — static mock data
+      // {
+      //   path: 'dashboard',
+      //   element: <Dashboard />,
+      // },
       {
         path: 'my-skills',
         element: <MySkills />,
@@ -39,7 +40,7 @@ const router = createBrowserRouter([
   },
   {
     path: '*',
-    element: <Navigate to="/dashboard" replace />,
+    element: <Navigate to="/my-skills" replace />,
   }
 ]);
 

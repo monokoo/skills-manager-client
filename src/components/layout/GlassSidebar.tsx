@@ -1,10 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Sun, Moon, LayoutDashboard, Library, ShoppingBag, Settings, Shield } from 'lucide-react';
+import { Sun, Moon, Library, ShoppingBag, Settings, Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 const NAV_ITEMS = [
-  { path: '/dashboard', labelKey: 'dashboard', icon: LayoutDashboard },
+  // { path: '/dashboard', labelKey: 'dashboard', icon: LayoutDashboard }, // temporarily disabled
   { path: '/my-skills', labelKey: 'mySkills', icon: Library },
   { path: '/marketplace', labelKey: 'marketplace', icon: ShoppingBag },
   { path: '/settings', labelKey: 'settings', icon: Settings },
@@ -106,7 +106,7 @@ function GlassSidebar() {
 
         {/* Version */}
         <div className="px-3 py-1 text-[11px] text-gray-400 dark:text-gray-600">
-          v1.0.0
+          v{__APP_VERSION__}
         </div>
       </div>
     </aside>
