@@ -701,7 +701,7 @@ const Settings = () => {
                 onClick={async (e) => {
                   e.preventDefault();
                   try {
-                    await invoke('open_url', { url: 'https://github.com/buzhangsan/skills-manager-client' });
+                    await invoke('open_url', { url: 'https://github.com/monokoo/skills-manager-client' });
                   } catch (error) {
                     console.error('Failed to open URL:', error);
                   }
@@ -718,7 +718,7 @@ const Settings = () => {
                 onClick={async (e) => {
                   e.preventDefault();
                   try {
-                    await invoke('open_url', { url: 'https://github.com/buzhangsan/skills-manager-client/issues' });
+                    await invoke('open_url', { url: 'https://github.com/monokoo/skills-manager-client/issues' });
                   } catch (error) {
                     console.error('Failed to open URL:', error);
                   }
@@ -778,7 +778,7 @@ const Settings = () => {
                 onClick={async (e) => {
                   e.preventDefault();
                   try {
-                    await invoke('open_url', { url: 'https://github.com/buzhangsan/skills-manager-client/issues/1' });
+                    await invoke('open_url', { url: 'https://github.com/monokoo/skills-manager-client/issues/1' });
                   } catch (error) {
                     console.error('Failed to open URL:', error);
                   }
