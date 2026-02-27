@@ -820,7 +820,15 @@ export const useSkillStore = create<SkillStore>()(
       fetchCustomMarketplace: async () => {
         try {
           const skills = await invoke<CustomMarketplaceSkill[]>('get_custom_marketplace');
-          const tagged = skills.map(s => ({ ...s, sourceType: 'custom' as const }));
+          // Dedup within each source: same sourceId + name should appear only once
+          const seen = new Set<string>();
+          const unique = skills.filter(s => {
+            const key = `${s.sourceId}/${s.name}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          const tagged = unique.map(s => ({ ...s, sourceType: 'custom' as const }));
           set({ customMarketplaceSkills: tagged });
         } catch (error) {
           console.error('Failed to fetch custom marketplace:', error);

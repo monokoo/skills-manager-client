@@ -66,5 +66,14 @@ export async function fetchSkillsSh(
 
   if (signal.aborted) return [];
 
-  return (data.skills ?? []).map(mapToMarketplaceSkill);
+  // Dedup by skillId within the same source to prevent duplicate entries
+  const seen = new Set<string>();
+  const uniqueSkills = (data.skills ?? []).filter(s => {
+    const key = `${s.source}/${s.skillId}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return uniqueSkills.map(mapToMarketplaceSkill);
 }
