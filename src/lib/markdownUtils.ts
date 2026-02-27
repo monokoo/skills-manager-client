@@ -37,3 +37,29 @@ export function parseFrontmatter(content: string): { meta: Record<string, string
 
   return { meta, body: trimmed.slice(end + 3).trimStart() };
 }
+
+/**
+ * Remove badge images and social link lines from Markdown content.
+ * Targets shields.io badges, social follow buttons, and common badge patterns.
+ */
+export function stripBadgeLines(md: string): string {
+  const lines = md.split('\n');
+  const filtered = lines.filter((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return true;
+
+    // Known badge hosting domains
+    if (/img\.shields\.io|badgen\.net|forthebadge\.com|awesome\.re/.test(trimmed)) return false;
+
+    // Badge image syntax: [![alt](badge-url)](link) — only match Markdown image patterns containing "badge"
+    if (/!\[.*\]\(.*badge.*\)/i.test(trimmed) && /^\[?!\[/.test(trimmed)) return false;
+
+    // Social follow links: [FOLLOW ON X], [JOIN OUR DISCORD], etc.
+    if (/\[.*(follow|join|discord|twitter|linkedin|subscribe).*\]\(http/i.test(trimmed)) return false;
+
+    return true;
+  });
+
+  // Collapse 3+ consecutive empty lines into 2
+  return filtered.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}

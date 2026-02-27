@@ -398,7 +398,7 @@ export default function SkillDetailDrawer({
                       {state.docLabel || 'README'}
                     </div>
                     <div className="markdown-body">
-                      <MarkdownContent content={state.readme} />
+                      <MarkdownContent content={state.readme} stripBadges />
                     </div>
                   </div>
                 )}
