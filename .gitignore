@@ -45,3 +45,4 @@ docs/plans/
 .test_sparse/
 docs/images/*
 src-tauri/~/
+.gitnexus

@@ -182,9 +182,9 @@ export default function SkillDetailDrawer({
           const treeRes = await fetch(`${base}/git/trees/${branch}?recursive=1`, { signal });
           if (treeRes.ok) {
             const treeData = await treeRes.json() as { tree: { path: string; type: string }[] };
-            // Find SKILL.md whose parent directory matches or contains the skill name
+            // Find SKILL.md or skill.md whose parent directory matches or contains the skill name
             const skillMdFiles = treeData.tree
-              .filter(f => f.path.endsWith('/SKILL.md'))
+              .filter(f => f.path.endsWith('/SKILL.md') || f.path.endsWith('/skill.md'))
               .map(f => f.path);
 
             // Match strategy: find path whose directory name matches skill name (may strip prefix)
@@ -201,7 +201,7 @@ export default function SkillDetailDrawer({
                 readme = await docRes.text();
                 docLabel = 'SKILL.md';
                 // Build source URL to the skill directory
-                const skillDir = matched.replace(/\/SKILL\.md$/, '');
+                const skillDir = matched.replace(/\/(SKILL|skill)\.md$/, '');
                 resolvedSourceUrl = `https://github.com/${parsed.owner}/${parsed.repo}/tree/${branch}/${skillDir}`;
               }
             }

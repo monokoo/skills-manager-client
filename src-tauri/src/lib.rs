@@ -10,6 +10,45 @@ use security::SecurityReport;
 // 主目录配置
 const PRIMARY_SKILLS_DIR: &str = ".claude/skills";
 
+// Supported SKILL.md filename variants (uppercase + lowercase)
+const SKILL_MD_VARIANTS: &[&str] = &["SKILL.md", "skill.md"];
+
+/// Check if a filename is a valid skill markdown file (SKILL.md or skill.md)
+fn is_skill_md(name: &std::ffi::OsStr) -> bool {
+    SKILL_MD_VARIANTS.iter().any(|v| name == *v)
+}
+
+/// Find the skill markdown file in a directory, preferring SKILL.md over skill.md
+fn find_skill_md(dir: &std::path::Path) -> Option<PathBuf> {
+    for variant in SKILL_MD_VARIANTS {
+        let p = dir.join(variant);
+        if p.exists() {
+            return Some(p);
+        }
+    }
+    None
+}
+
+/// Check if a path string ends with a skill markdown filename
+fn ends_with_skill_md(path: &str) -> bool {
+    path.ends_with("/SKILL.md") || path.ends_with("/skill.md")
+        || path == "SKILL.md" || path == "skill.md"
+}
+
+/// Trim the skill markdown filename suffix from a path
+fn trim_skill_md_suffix(path: &str) -> &str {
+    for variant in SKILL_MD_VARIANTS {
+        let suffix = format!("/{}", variant);
+        if let Some(stripped) = path.strip_suffix(suffix.as_str()) {
+            return stripped;
+        }
+        if path == *variant {
+            return "";
+        }
+    }
+    path
+}
+
 // 代理配置 - 基于 skill-dir.md 标准
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentConfig {
@@ -588,7 +627,7 @@ fn scan_skills() -> Result<ScanResult, String> {
             for entry in WalkDir::new(&skills_dir).max_depth(3) {
                 if let Ok(entry) = entry {
                     let path = entry.path();
-                    if path.file_name().map(|n| n == "SKILL.md").unwrap_or(false) {
+                    if path.file_name().map(|n| is_skill_md(n)).unwrap_or(false) {
                         if let Some(skill) = parse_skill_md(&path.to_path_buf(), "system") {
                             system_skills.push(skill);
                         }
@@ -605,7 +644,7 @@ fn scan_skills() -> Result<ScanResult, String> {
                 for entry in WalkDir::new(&skills_dir).max_depth(3) {
                     if let Ok(entry) = entry {
                         let path = entry.path();
-                        if path.file_name().map(|n| n == "SKILL.md").unwrap_or(false) {
+                        if path.file_name().map(|n| is_skill_md(n)).unwrap_or(false) {
                             if let Some(skill) = parse_skill_md(&path.to_path_buf(), "project") {
                                 project_skills.push(skill);
                             }
@@ -955,12 +994,18 @@ async fn import_github_skill(request: ImportGithubRequest) -> Result<ImportResul
             };
 
             // Determine SKILL.md location: root vs subdirectory
-            let has_root_skill = tree_listing.lines().any(|l| l == "SKILL.md");
+            let has_root_skill = tree_listing.lines().any(|l| ends_with_skill_md(l) && !l.contains('/'));
             let subpath_skill = if !has_root_skill {
-                let pattern = format!("{}/SKILL.md", expected_name);
-                tree_listing.lines()
-                    .find(|line| line.ends_with(&pattern))
-                    .map(|line| line.trim_end_matches("/SKILL.md").to_string())
+                // Try both SKILL.md and skill.md variants
+                let mut found = None;
+                for variant in SKILL_MD_VARIANTS {
+                    let pattern = format!("{}/{}", expected_name, variant);
+                    if let Some(line) = tree_listing.lines().find(|line| line.ends_with(&pattern)) {
+                        found = Some(trim_skill_md_suffix(line).to_string());
+                        break;
+                    }
+                }
+                found
             } else {
                 None
             };
@@ -1165,7 +1210,7 @@ async fn import_github_skill(request: ImportGithubRequest) -> Result<ImportResul
 fn check_skill_exists(request: CheckExistsRequest) -> Result<CheckExistsResult, String> {
     let install_dir = PathBuf::from(&request.install_path);
     let target = install_dir.join(&request.skill_name);
-    let exists = target.exists() && target.join("SKILL.md").exists();
+    let exists = target.exists() && find_skill_md(&target).is_some();
     Ok(CheckExistsResult {
         exists,
         path: target.to_string_lossy().to_string(),
@@ -1361,9 +1406,7 @@ fn open_url(url: String) -> Result<(), String> {
 #[tauri::command]
 fn read_skill(skill_path: String) -> Result<String, String> {
     let path = PathBuf::from(&skill_path);
-    let skill_md = path.join("SKILL.md");
-
-    if skill_md.exists() {
+    if let Some(skill_md) = find_skill_md(&path) {
         fs::read_to_string(&skill_md).map_err(|e| e.to_string())
     } else {
         Err("SKILL.md not found".to_string())
@@ -1420,7 +1463,7 @@ fn scan_all_skills_security() -> Result<Vec<SecurityReport>, String> {
                 for entry in WalkDir::new(&skills_dir).max_depth(2) {
                     if let Ok(entry) = entry {
                         let path = entry.path();
-                        if path.is_dir() && path.join("SKILL.md").exists() {
+                        if path.is_dir() && find_skill_md(path).is_some() {
                             let skill_id = path.file_name()
                                 .map(|n| n.to_string_lossy().to_string())
                                 .unwrap_or_else(|| "unknown".to_string());
@@ -2007,8 +2050,7 @@ async fn import_selected_skills(request: InstallSelectedRequest) -> Result<Impor
             
             // 如果文件夹名是临时目录或为空，从 SKILL.md 解析真实名称
             if skill_name.is_empty() || skill_name.starts_with(".temp_import") {
-                let skill_md_path = source_dir.join("SKILL.md");
-                if skill_md_path.exists() {
+                if let Some(skill_md_path) = find_skill_md(&source_dir) {
                     if let Ok(content) = fs::read_to_string(&skill_md_path) {
                         let (_, parsed_name, _) = parse_yaml_frontmatter(&content);
                         if let Some(name) = parsed_name {
