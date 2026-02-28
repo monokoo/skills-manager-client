@@ -2094,10 +2094,11 @@ async fn import_selected_skills(request: InstallSelectedRequest) -> Result<Impor
                 }
             }
 
-             // Add metadata
+             // Add metadata — determine source type by whether a repo URL was provided
+            let is_local = request.repo_url.trim().is_empty();
             let metadata = SkillMetadata {
-                source: "github".to_string(),
-                source_url: Some(request.repo_url.clone()),
+                source: if is_local { "local" } else { "github" }.to_string(),
+                source_url: if is_local { None } else { Some(request.repo_url.trim().to_string()) },
                 install_date: current_timestamp(),
                 commit_hash: None,
                 version: None,
