@@ -1754,7 +1754,7 @@ async fn analyze_local_folder(request: AnalyzeLocalRequest) -> Result<AnalyzeRes
         for entry in WalkDir::new(&source_path).max_depth(5) {
             if let Ok(entry) = entry {
                 let path = entry.path();
-                if path.file_name().map(|n| n == "SKILL.md").unwrap_or(false) {
+                if path.file_name().map(|n| is_skill_md(n)).unwrap_or(false) {
                     if let Some(skill_info) = parse_skill_md(&path.to_path_buf(), "local") {
                         // Calculate relative path
                         let relative_path = path.parent().unwrap().strip_prefix(&source_path).unwrap_or(path.parent().unwrap());
