@@ -1208,7 +1208,7 @@ async fn import_github_skill(request: ImportGithubRequest) -> Result<ImportResul
 
 #[tauri::command]
 fn check_skill_exists(request: CheckExistsRequest) -> Result<CheckExistsResult, String> {
-    let install_dir = PathBuf::from(&request.install_path);
+    let install_dir = expand_tilde(&request.install_path);
     let target = install_dir.join(&request.skill_name);
     let exists = target.exists() && find_skill_md(&target).is_some();
     Ok(CheckExistsResult {

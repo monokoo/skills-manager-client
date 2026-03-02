@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import type { InstallLevel } from '../../../components/ui/InstallLevelPicker';
 
 /** Store 切片：useSkillImport 仅依赖这些属性 */
@@ -11,6 +12,9 @@ interface SkillStoreSlice {
   projectPaths: string[];
   defaultInstallLocation?: string;
 }
+
+// Default system skills directory (must match backend PRIMARY_SKILLS_DIR)
+const DEFAULT_SKILLS_DIR = '~/.claude/skills';
 
 /**
  * Hook for managing the skill import flow (github/local)
@@ -122,10 +126,35 @@ export const useSkillImport = (
         return;
       }
 
-      // Overwrite check — BEFORE setting isImporting so the button stays normal
-      const existingSkills = analysisResult.skills.filter(
-        (s: any) => params.selectedPaths.has(s.path) && s.exists
+      // Overwrite check — resolve actual install paths and check each target directory
+      const installPaths = params.level === 'project' && projectPaths.length > 0 && params.projectIndices.length > 0
+        ? params.projectIndices.map(i => projectPaths[i] || projectPaths[0])
+        : [DEFAULT_SKILLS_DIR];
+
+      const selectedSkills = analysisResult.skills.filter(
+        (s: any) => params.selectedPaths.has(s.path)
       );
+
+      const existingSkills: any[] = [];
+      for (const skill of selectedSkills) {
+        let found = false;
+        for (const installPath of installPaths) {
+          try {
+            const result: any = await invoke('check_skill_exists', {
+              request: { skillName: skill.name, installPath }
+            });
+            if (result.exists) {
+              found = true;
+              break;
+            }
+          } catch {
+            // Ignore check errors, treat as non-existing
+          }
+        }
+        if (found) {
+          existingSkills.push(skill);
+        }
+      }
       if (existingSkills.length > 0) {
         const names = existingSkills.map((s: any) => `  • ${s.name}`).join('\n');
         let confirmed = false;
