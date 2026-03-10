@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Github, HardDrive, AlertCircle, BookOpen,
-  CheckCircle2, FolderOpen, CheckSquare, Square
+  CheckCircle2, FolderOpen, CheckSquare, Square, Archive
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { InstallLevelPicker } from '../../../components/ui/InstallLevelPicker';
@@ -414,6 +414,36 @@ export const ImportSkillModal: React.FC<ImportSkillModalProps> = ({
                           }}
                         >
                           <FolderOpen size={16} />
+                        </button>
+                        <button
+                          className="absolute right-10 top-1/2 -translate-y-1/2 p-1.5
+                            hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors
+                            text-base-content/40 hover:text-emerald-500"
+                          title={t('selectZipFile')}
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            try {
+                              if ((window as any).__TAURI_INTERNALS__) {
+                                const { open: openDialog } = await import('@tauri-apps/plugin-dialog');
+                                const selected = await openDialog({
+                                  directory: false,
+                                  multiple: false,
+                                  filters: [{ name: 'ZIP', extensions: ['zip'] }],
+                                });
+                                if (selected && typeof selected === 'string') {
+                                  setImportPath(selected);
+                                  if (formError) setFormError(null);
+                                  if (analysisResult) onClearAnalysis();
+                                }
+                              } else {
+                                setFormError(t('nativeDialogOnlyInApp'));
+                              }
+                            } catch (err) {
+                              console.error('Failed to open file dialog:', err);
+                            }
+                          }}
+                        >
+                          <Archive size={16} />
                         </button>
                       </div>
 

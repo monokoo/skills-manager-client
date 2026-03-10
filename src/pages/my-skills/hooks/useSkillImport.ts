@@ -49,6 +49,8 @@ export const useSkillImport = (
       'No skill paths provided': t('error.noSkillPathsProvided'),
       'Source path does not exist': t('error.sourcePathNotExist'),
       'SKILL.md not found': t('error.skillMdNotFound'),
+      'ZIP extract failed': t('error.zipExtractFailed'),
+      'Invalid ZIP file': t('error.invalidZipFile'),
     };
     for (const [key, value] of Object.entries(errorMap)) {
       if (msg.includes(key)) return value;
@@ -185,7 +187,9 @@ export const useSkillImport = (
         ? params.projectIndices.map(i => projectPaths[i] || projectPaths[0])
         : [undefined];
 
-      const sourcePath = params.type === 'local' ? (params.path || '') : analysisResult.tempPath;
+      const sourcePath = params.type === 'local'
+        ? (analysisResult.tempPath || params.path || '')
+        : analysisResult.tempPath;
       let successCount = 0;
       let failCount = 0;
       let lastMessage = '';
@@ -211,7 +215,7 @@ export const useSkillImport = (
       }
 
       if (successCount > 0 && failCount === 0) {
-        showToast(true, lastMessage || t(params.type === 'local' ? 'importSuccessLocal' : 'importSuccessGitHub'));
+        showToast(true, t(params.type === 'local' ? 'importSuccessLocal' : 'importSuccessGitHub'));
         setShowImportModal(false);
         setImportType(null);
         setSelectedSkillPaths(new Set());
@@ -230,6 +234,15 @@ export const useSkillImport = (
     } finally {
       setIsImporting(false);
       importLockRef.current = false;
+      // Cleanup ZIP temp directories
+      try {
+        const tempPath = store.analysisResult?.tempPath;
+        if (tempPath && typeof tempPath === 'string' && tempPath.includes('.skill_zip_')) {
+          await invoke('cleanup_temp_import', { tempPath });
+        }
+      } catch {
+        // Ignore cleanup errors
+      }
     }
   }, [store, showToast, translateBackendError, t]);
 

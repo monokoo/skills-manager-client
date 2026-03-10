@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use walkdir::WalkDir;
 
@@ -12,6 +12,7 @@ const PRIMARY_SKILLS_DIR: &str = ".claude/skills";
 
 // Supported SKILL.md filename variants (uppercase + lowercase)
 const SKILL_MD_VARIANTS: &[&str] = &["SKILL.md", "skill.md"];
+const SKILL_ZIP_TEMP_PREFIX: &str = ".skill_zip_";
 
 /// Check if a filename is a valid skill markdown file (SKILL.md or skill.md)
 fn is_skill_md(name: &std::ffi::OsStr) -> bool {
@@ -1330,6 +1331,45 @@ fn copy_dir_all(src: &PathBuf, dst: &PathBuf) -> std::io::Result<()> {
     Ok(())
 }
 
+/// Extract a ZIP file to a destination directory with Zip Slip protection
+fn extract_zip(zip_path: &Path, dest: &Path) -> Result<(), String> {
+    let file = fs::File::open(zip_path)
+        .map_err(|e| format!("Failed to open ZIP file: {}", e))?;
+    let mut archive = zip::ZipArchive::new(file)
+        .map_err(|e| format!("Invalid ZIP file: {}", e))?;
+
+    for i in 0..archive.len() {
+        let mut entry = archive.by_index(i)
+            .map_err(|e| format!("Failed to read ZIP entry: {}", e))?;
+
+        let entry_path = entry.enclosed_name()
+            .ok_or_else(|| "ZIP entry has invalid path (potential Zip Slip attack)".to_string())?;
+
+        let out_path = dest.join(&entry_path);
+
+        // Zip Slip protection: ensure the resolved path is within dest
+        if !out_path.starts_with(dest) {
+            return Err(format!("ZIP entry path escapes destination: {:?}", entry_path));
+        }
+
+        if entry.is_dir() {
+            fs::create_dir_all(&out_path)
+                .map_err(|e| format!("Failed to create directory {:?}: {}", out_path, e))?;
+        } else {
+            if let Some(parent) = out_path.parent() {
+                fs::create_dir_all(parent)
+                    .map_err(|e| format!("Failed to create parent directory {:?}: {}", parent, e))?;
+            }
+            let mut outfile = fs::File::create(&out_path)
+                .map_err(|e| format!("Failed to create file {:?}: {}", out_path, e))?;
+            std::io::copy(&mut entry, &mut outfile)
+                .map_err(|e| format!("Failed to write file {:?}: {}", out_path, e))?;
+        }
+    }
+
+    Ok(())
+}
+
 #[tauri::command]
 fn get_project_paths() -> Result<Vec<String>, String> {
     let config_path = get_config_path().ok_or("Cannot determine config path")?;
@@ -1748,16 +1788,125 @@ async fn analyze_local_folder(request: AnalyzeLocalRequest) -> Result<AnalyzeRes
             };
         }
 
+        // Determine scan target: if ZIP file, extract first
+        let (scan_dir, _is_zip_temp) = if source_path.extension().and_then(|e| e.to_str()) == Some("zip") {
+            let timestamp = current_timestamp();
+            let temp_dir = std::env::temp_dir().join(format!("{}{}", SKILL_ZIP_TEMP_PREFIX, timestamp));
+            
+            if let Err(e) = fs::create_dir_all(&temp_dir) {
+                return AnalyzeResult {
+                    success: false,
+                    message: format!("Failed to create temp directory: {}", e),
+                    skills: vec![],
+                    temp_path: "".to_string(),
+                };
+            }
+
+            if let Err(e) = extract_zip(&source_path, &temp_dir) {
+                let _ = fs::remove_dir_all(&temp_dir);
+                return AnalyzeResult {
+                    success: false,
+                    message: format!("ZIP extract failed: {}", e),
+                    skills: vec![],
+                    temp_path: "".to_string(),
+                };
+            }
+
+            // Scenario detection: check if SKILL.md is at the root of extracted content
+            if let Some(skill_md_path) = find_skill_md(&temp_dir) {
+                // Scenario 2: loose files — wrap them into a named subdirectory
+                let skill_name = {
+                    let content = fs::read_to_string(&skill_md_path).unwrap_or_default();
+                    let (_desc, name, _ver) = parse_yaml_frontmatter(&content);
+                    let raw_name = name.unwrap_or_else(|| {
+                        // Fallback: use ZIP filename without extension
+                        source_path.file_stem()
+                            .and_then(|s| s.to_str())
+                            .unwrap_or("unnamed-skill")
+                            .to_string()
+                    });
+                    // Sanitize: strip path traversal characters
+                    let sanitized = raw_name
+                        .replace('/', "")
+                        .replace('\\', "")
+                        .replace("..", "")
+                        .trim()
+                        .to_string();
+                    if sanitized.is_empty() { "unnamed-skill".to_string() } else { sanitized }
+                };
+
+                let sub_dir = temp_dir.join(&skill_name);
+                // Post-check: ensure sanitized name didn't escape temp_dir
+                if !sub_dir.starts_with(&temp_dir) {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return AnalyzeResult {
+                        success: false,
+                        message: "Skill name attempts path traversal".to_string(),
+                        skills: vec![],
+                        temp_path: "".to_string(),
+                    };
+                }
+                if let Err(e) = fs::create_dir_all(&sub_dir) {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return AnalyzeResult {
+                        success: false,
+                        message: format!("Failed to create skill directory: {}", e),
+                        skills: vec![],
+                        temp_path: "".to_string(),
+                    };
+                }
+
+                // Move all entries except the target subdirectory itself
+                let mut move_errors: Vec<String> = Vec::new();
+                if let Ok(entries) = fs::read_dir(&temp_dir) {
+                    for entry in entries.flatten() {
+                        let entry_name = entry.file_name();
+                        if entry_name.to_string_lossy() == skill_name {
+                            continue; // skip the target subdirectory
+                        }
+                        let dest = sub_dir.join(&entry_name);
+                        if let Err(_) = fs::rename(entry.path(), &dest) {
+                            // Fallback: try copy + remove for cross-device moves
+                            let fallback_result = if entry.path().is_dir() {
+                                copy_dir_all(&entry.path().to_path_buf(), &dest.to_path_buf())
+                                    .and_then(|_| fs::remove_dir_all(entry.path()))
+                            } else {
+                                fs::copy(entry.path(), &dest)
+                                    .and_then(|_| fs::remove_file(entry.path()))
+                            };
+                            if let Err(e) = fallback_result {
+                                move_errors.push(format!("{}: {}", entry.path().display(), e));
+                            }
+                        }
+                    }
+                }
+                if !move_errors.is_empty() {
+                    let _ = fs::remove_dir_all(&temp_dir);
+                    return AnalyzeResult {
+                        success: false,
+                        message: format!("Failed to move files: {}", move_errors.join(", ")),
+                        skills: vec![],
+                        temp_path: "".to_string(),
+                    };
+                }
+            }
+            // Scenario 1: folder-wrapped — no extra processing needed
+
+            (temp_dir, true)
+        } else {
+            (source_path, false)
+        };
+
         // Scan for SKILL.md
         let skills_dir = get_claude_skills_dir();
         let mut discovered_skills = Vec::new();
-        for entry in WalkDir::new(&source_path).max_depth(5) {
+        for entry in WalkDir::new(&scan_dir).max_depth(5) {
             if let Ok(entry) = entry {
                 let path = entry.path();
                 if path.file_name().map(|n| is_skill_md(n)).unwrap_or(false) {
                     if let Some(skill_info) = parse_skill_md(&path.to_path_buf(), "local") {
                         // Calculate relative path
-                        let relative_path = path.parent().unwrap().strip_prefix(&source_path).unwrap_or(path.parent().unwrap());
+                        let relative_path = path.parent().unwrap().strip_prefix(&scan_dir).unwrap_or(path.parent().unwrap());
                         let already_exists = skills_dir.as_ref().map_or(false, |dir| dir.join(&skill_info.name).exists());
                         
                         discovered_skills.push(DiscoveredSkill {
@@ -1775,7 +1924,7 @@ async fn analyze_local_folder(request: AnalyzeLocalRequest) -> Result<AnalyzeRes
             success: true,
             message: "Local analysis complete".to_string(),
             skills: discovered_skills,
-            temp_path: source_path.to_string_lossy().to_string(),
+            temp_path: scan_dir.to_string_lossy().to_string(),
         }
     }).await.map_err(|e| e.to_string())?;
 
@@ -2139,9 +2288,9 @@ async fn cleanup_temp_import(temp_path: String) -> Result<(), String> {
     if !path.exists() {
         return Ok(());
     }
-    // Safety: only delete directories that match .temp_import_ prefix
+    // Safety: only delete directories that match known temp prefixes
     let dir_name = path.file_name().unwrap_or_default().to_string_lossy();
-    if !dir_name.starts_with(".temp_import_") {
+    if !dir_name.starts_with(".temp_import_") && !dir_name.starts_with(SKILL_ZIP_TEMP_PREFIX) {
         return Err("Refusing to delete non-temp directory".to_string());
     }
     fs::remove_dir_all(&path).map_err(|e| format!("Failed to cleanup: {}", e))?;
