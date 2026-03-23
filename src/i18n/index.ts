@@ -312,6 +312,7 @@ const resources = {
       noDataSourcesHint: "Enable official source or add custom sources in Settings",
       goToSettings: "Go to Settings",
       overwriteDifferentSource: "\"{{name}}\" is already installed from a different source ({{existingSource}}). Installing will overwrite the existing skill. Continue?",
+      overwriteExistingSkill: "\"{{name}}\" already exists in:\n{{paths}}\n\nOverwrite?",
       localSource: "local",
 
       // Settings - Data Source
@@ -660,6 +661,7 @@ const resources = {
       noDataSourcesHint: "请在设置中启用官方源或添加自定义源",
       goToSettings: "前往设置",
       overwriteDifferentSource: "\"{{name}}\" 已从其他源安装（{{existingSource}}），继续安装将覆盖现有的 Skill。是否继续？",
+      overwriteExistingSkill: "\"{{name}}\" 已存在于以下目录：\n{{paths}}\n\n是否覆盖？",
       localSource: "本地",
 
       // 设置 - 数据源

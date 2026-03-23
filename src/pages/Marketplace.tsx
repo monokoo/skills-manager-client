@@ -36,6 +36,7 @@ interface InstallStatus {
 
 const TAB_ACTIVE_STYLE = 'bg-white dark:bg-white/10 text-emerald-600 dark:text-emerald-400 shadow-sm';
 const TAB_INACTIVE_STYLE = 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300';
+const DEFAULT_SYSTEM_SKILLS_PATH = '~/.claude/skills';
 
 const BatchActionBar = ({ 
   selectedCount, 
@@ -965,17 +966,38 @@ const Marketplace = () => {
                 </button>
                 <button
                   onClick={async () => {
-                    // Check for same-name skill from a different source before installing
-                    const sameNameSkill = installedSkills.find(s =>
-                      s.name === installTarget.name && s.sourceUrl !== installTarget.githubUrl
+                    // Determine target install paths based on selected level
+                    const targetPaths = installLevel === 'project' && selectedProjectIndices.length > 0
+                      ? selectedProjectIndices.map(i => projectPaths[i])
+                      : [DEFAULT_SYSTEM_SKILLS_PATH];
+
+                    // Check which target paths already have this skill (parallel)
+                    const checkResults = await Promise.all(
+                      targetPaths.map(async (tp) => {
+                        try {
+                          const result: any = await invoke('check_skill_exists', {
+                            request: { skillName: installTarget.name, installPath: tp }
+                          });
+                          return result.exists ? tp : null;
+                        } catch (err) {
+                          console.error(`Skill existence check failed for path ${tp}:`, err);
+                          return null;
+                        }
+                      })
                     );
-                    if (sameNameSkill) {
-                      let confirmed = false;
-                      const msg = t('overwriteDifferentSource', {
+                    const existingPaths = checkResults.filter((p): p is string => p !== null);
+
+                    // Only prompt overwrite for paths that already have the skill
+                    if (existingPaths.length > 0) {
+                      const pathLabels = existingPaths
+                        .map(p => `  • ${p.split('/').pop() || p}`)
+                        .join('\n');
+                      const msg = t('overwriteExistingSkill', {
                         name: installTarget.name,
-                        existingSource: sameNameSkill.sourceUrl || t('localSource'),
-                        defaultValue: `"${installTarget.name}" is already installed from a different source (${sameNameSkill.sourceUrl || 'local'}). Installing will overwrite the existing skill. Continue?`,
+                        paths: pathLabels,
+                        defaultValue: `"${installTarget.name}" already exists in:\n${pathLabels}\n\nOverwrite?`,
                       });
+                      let confirmed = false;
                       try {
                         if ((window as any).__TAURI_INTERNALS__) {
                           const { confirm: tauriConfirm } = await import('@tauri-apps/plugin-dialog');
