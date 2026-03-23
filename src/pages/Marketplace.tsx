@@ -1017,7 +1017,7 @@ const Marketplace = () => {
 
                     setInstallTarget(null);
                     if (installLevel !== 'project' || selectedProjectIndices.length === 0) {
-                      handleInstall(installTarget, undefined);
+                      handleInstall(installTarget, DEFAULT_SYSTEM_SKILLS_PATH);
                       return;
                     }
                     setInstallingSkillId(installTarget.id);
